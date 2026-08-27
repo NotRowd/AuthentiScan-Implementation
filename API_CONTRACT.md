@@ -79,9 +79,44 @@ Possible errors:
 | `401` | Missing, invalid, or expired login token |
 | `403` | The user's plan scan limit has been reached |
 
+## Scan History and Status
+
+All scan endpoints below require `Authorization: Bearer <token>`. A user can only retrieve their own scans.
+
+### List a User's Scans
+
+`GET /scans?limit=20&offset=0`
+
+The optional `limit` is from 1 to 100. The response contains `data.scans` and `data.pagination`.
+
+### Get One Scan and Its Analysis State
+
+`GET /scans/:scanId`
+
+Before AI integration, an uploaded image returns:
+
+```json
+{
+  "success": true,
+  "data": {
+    "scan_id": 1,
+    "status": "queued",
+    "analysis_status": "pending_ai_service",
+    "analysis": null,
+    "image_url": "/api/v1/scans/1/image"
+  }
+}
+```
+
+### View an Uploaded Image
+
+`GET /scans/:scanId/image`
+
+This returns the uploaded image itself. It is protected so another user cannot view it without owning that scan.
+
 ## Planned AI Service Contract
 
-The backend will later send the stored image to the AI service. The AI service should return this shape:
+The backend will later send the stored image to the AI service. Until the service exists, the backend keeps the scan `queued` and returns `analysis_status: "pending_ai_service"`; it does not create fake predictions. The AI service should return this shape:
 
 ```json
 {

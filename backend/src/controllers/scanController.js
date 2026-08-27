@@ -17,6 +17,76 @@ async function removeUploadedFile(file) {
   }
 }
 
+function parsePositiveInteger(value, fallback, maximum) {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > maximum) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function formatAnalysis(row) {
+  if (!row.result_id) {
+    return {
+      status: 'pending_ai_service',
+      result: null
+    };
+  }
+
+  return {
+    status: 'completed',
+    result: {
+      verdict: row.verdict,
+      confidence_score: Number(row.confidence_score),
+      authentic_score: Number(row.authentic_score),
+      ai_generated_score: Number(row.ai_generated_score),
+      readable_explanation: row.readable_explanation,
+      heatmap_url: row.heatmap_path || null,
+      model_version: row.model_version,
+      analyzed_at: row.analyzed_at
+    }
+  };
+}
+
+function formatScan(row) {
+  const analysis = formatAnalysis(row);
+
+  return {
+    scan_id: row.scan_id,
+    original_file_name: row.original_file_name,
+    mime_type: row.mime_type,
+    file_size_bytes: Number(row.file_size_bytes),
+    status: row.status,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    image_url: `/api/v1/scans/${row.scan_id}/image`,
+    analysis_status: analysis.status,
+    analysis: analysis.result
+  };
+}
+
+async function findOwnedScan(scanId, userId) {
+  const [scans] = await pool.execute(
+    `SELECT s.scan_id, s.user_id, s.original_file_name, s.stored_file_name,
+            s.mime_type, s.file_size_bytes, s.status, s.created_at, s.updated_at,
+            ar.result_id, ar.verdict, ar.confidence_score, ar.authentic_score,
+            ar.ai_generated_score, ar.readable_explanation, ar.heatmap_path,
+            ar.model_version, ar.analyzed_at
+     FROM scans AS s
+     LEFT JOIN analysis_results AS ar ON ar.scan_id = s.scan_id
+     WHERE s.scan_id = ? AND s.user_id = ? AND s.is_deleted = FALSE
+     LIMIT 1`,
+    [scanId, userId]
+  );
+
+  return scans[0] || null;
+}
+
 async function uploadScan(req, res, next) {
   try {
     if (!req.file) {
@@ -118,6 +188,128 @@ async function uploadScan(req, res, next) {
   }
 }
 
+async function listScans(req, res, next) {
+  try {
+    const limit = parsePositiveInteger(req.query.limit, 20, 100);
+    const offset = req.query.offset === undefined ? 0 : Number(req.query.offset);
+
+    if (limit === null || !Number.isInteger(offset) || offset < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'limit must be between 1 and 100, and offset must be zero or greater.'
+      });
+    }
+
+    const [scans] = await pool.execute(
+      `SELECT s.scan_id, s.original_file_name, s.mime_type, s.file_size_bytes,
+              s.status, s.created_at, s.updated_at,
+              ar.result_id, ar.verdict, ar.confidence_score, ar.authentic_score,
+              ar.ai_generated_score, ar.readable_explanation, ar.heatmap_path,
+              ar.model_version, ar.analyzed_at
+       FROM scans AS s
+       LEFT JOIN analysis_results AS ar ON ar.scan_id = s.scan_id
+       WHERE s.user_id = ? AND s.is_deleted = FALSE
+       ORDER BY s.created_at DESC, s.scan_id DESC
+       LIMIT ? OFFSET ?`,
+      [req.user.userId, limit, offset]
+    );
+
+    const [counts] = await pool.execute(
+      `SELECT COUNT(*) AS total
+       FROM scans
+       WHERE user_id = ? AND is_deleted = FALSE`,
+      [req.user.userId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        scans: scans.map(formatScan),
+        pagination: {
+          total: Number(counts[0].total),
+          limit,
+          offset
+        }
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getScan(req, res, next) {
+  try {
+    const scanId = parsePositiveInteger(req.params.scanId, null, Number.MAX_SAFE_INTEGER);
+    if (scanId === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'scanId must be a positive whole number.'
+      });
+    }
+
+    const scan = await findOwnedScan(scanId, req.user.userId);
+    if (!scan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scan not found.'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: formatScan(scan)
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getScanImage(req, res, next) {
+  try {
+    const scanId = parsePositiveInteger(req.params.scanId, null, Number.MAX_SAFE_INTEGER);
+    if (scanId === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'scanId must be a positive whole number.'
+      });
+    }
+
+    const scan = await findOwnedScan(scanId, req.user.userId);
+    if (!scan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scan not found.'
+      });
+    }
+
+    const imageDirectory = path.resolve(__dirname, '../../uploads/images');
+    const imagePath = path.resolve(imageDirectory, path.basename(scan.stored_file_name));
+
+    if (!imagePath.startsWith(`${imageDirectory}${path.sep}`)) {
+      const error = new Error('Stored image path is invalid.');
+      error.statusCode = 500;
+      throw error;
+    }
+
+    try {
+      await fs.access(imagePath);
+    } catch {
+      return res.status(404).json({
+        success: false,
+        message: 'Stored image file was not found.'
+      });
+    }
+
+    res.type(scan.mime_type);
+    return res.sendFile(imagePath);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
-  uploadScan
+  uploadScan,
+  listScans,
+  getScan,
+  getScanImage
 };
