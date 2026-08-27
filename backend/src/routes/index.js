@@ -2,6 +2,7 @@ const express = require('express');
 const { checkDatabaseConnection } = require('../config/db');
 const authRoutes = require('./authRoutes');
 const userRoutes = require('./userRoutes');
+const scanRoutes = require('./scanRoutes');
 const router = express.Router();
 
 router.get('/health', (req, res) => {
@@ -33,4 +34,5 @@ router.get('/database/health', async (req, res, next) => {
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/scans', scanRoutes);
 module.exports = router;
