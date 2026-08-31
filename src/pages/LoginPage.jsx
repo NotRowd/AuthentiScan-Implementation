@@ -1,15 +1,31 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShieldCheck, Mail, Lock, ArrowRight } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
+import { loginAccount, saveAuthSession } from '../services/api';
 
 export default function LoginPage() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // UI placeholder - no backend implementation as requested
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const response = await loginAccount({ email, password });
+      saveAuthSession(response.data, rememberMe);
+      navigate('/dashboard', { replace: true });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -39,6 +55,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="student@university.edu"
+                    required
                     className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
                   />
                 </div>
@@ -60,6 +77,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
+                    required
                     className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
                   />
                 </div>
@@ -69,17 +87,26 @@ export default function LoginPage() {
                 <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-400">
                   <input
                     type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="rounded border-slate-700 bg-slate-900 text-brand-600 focus:ring-brand-500"
                   />
                   Remember me on this device
                 </label>
               </div>
 
+              {error && (
+                <p role="alert" className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                  {error}
+                </p>
+              )}
+
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-xl font-semibold bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white shadow-lg shadow-brand-500/20 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                disabled={isSubmitting}
+                className="w-full py-3.5 rounded-xl font-semibold bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-70 text-white shadow-lg shadow-brand-500/20 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
               >
-                Log In
+                {isSubmitting ? 'Signing in...' : 'Log In'}
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
