@@ -19,11 +19,11 @@ from model_service import (
     positive_label_from_environment,
     preprocess_image,
     uncertainty_margin_from_environment,
+    verified_image_format,
 )
 
 
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
-ALLOWED_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp"}
 HEATMAP_DIRECTORY = Path(__file__).parent / "generated-heatmaps"
 MODEL_VERSION = "authentiscan-efficientnet-b0-v2"
 
@@ -56,12 +56,6 @@ def health(request: Request):
 
 @app.post("/predict")
 async def predict(request: Request, image: UploadFile = File(...)):
-    if image.content_type not in ALLOWED_MEDIA_TYPES:
-        raise HTTPException(
-            status_code=415,
-            detail="Only JPEG, PNG, and WebP images are allowed.",
-        )
-
     image_bytes = await image.read()
     if not image_bytes:
         raise HTTPException(status_code=400, detail="An image file is required.")
@@ -79,9 +73,13 @@ async def predict(request: Request, image: UploadFile = File(...)):
         )
 
     try:
+        # Postman and other clients may label a valid local file as octet-stream.
+        # The image bytes, rather than the client-provided MIME header, are authoritative.
+        verified_image_format(image_bytes)
         model_input, original_rgb = preprocess_image(image_bytes)
     except ValueError as error:
-        raise HTTPException(status_code=400, detail=str(error)) from error
+        status_code = 415 if str(error) == "Only JPEG, PNG, and WebP images are allowed." else 400
+        raise HTTPException(status_code=status_code, detail=str(error)) from error
 
     model = request.app.state.model
     positive_score = float(model.predict(model_input, verbose=0)[0][0])

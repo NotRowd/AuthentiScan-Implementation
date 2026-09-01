@@ -12,6 +12,7 @@ from PIL import Image, UnidentifiedImageError
 
 MODEL_PATH = Path(__file__).parent / "model" / "authentiscan_efficientnet_b0_v2.keras"
 IMAGE_SIZE = (224, 224)
+SUPPORTED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
 PositiveLabel = Literal["ai_generated", "authentic"]
 
 
@@ -35,6 +36,21 @@ def preprocess_image(image_bytes: bytes) -> tuple[np.ndarray, np.ndarray]:
     # The saved EfficientNet model includes its own rescaling/normalization layers.
     model_input = np.expand_dims(np.asarray(resized, dtype=np.float32), axis=0)
     return model_input, original_rgb
+
+
+def verified_image_format(image_bytes: bytes) -> str:
+    """Return a supported image format based on file contents, not its MIME label."""
+    try:
+        with Image.open(BytesIO(image_bytes)) as image:
+            image_format = image.format
+            image.verify()
+    except (UnidentifiedImageError, OSError) as error:
+        raise ValueError("The uploaded file is not a valid image.") from error
+
+    if image_format not in SUPPORTED_IMAGE_FORMATS:
+        raise ValueError("Only JPEG, PNG, and WebP images are allowed.")
+
+    return image_format
 
 
 def positive_label_from_environment() -> PositiveLabel | None:
