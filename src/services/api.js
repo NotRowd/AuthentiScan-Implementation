@@ -87,6 +87,29 @@ export async function fetchUserScans() {
   return payload;
 }
 
+export async function fetchUserStats() {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error('Please log in before viewing stats.');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/stats`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(payload?.message || 'Failed to fetch user statistics.');
+  }
+
+  return payload;
+}
+
 export function saveAuthSession(data, rememberUser) {
   const storage = rememberUser ? localStorage : sessionStorage;
 
