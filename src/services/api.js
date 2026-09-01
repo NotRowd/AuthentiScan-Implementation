@@ -4,6 +4,19 @@ const API_BASE_URL =
 const TOKEN_KEY = 'authentiscan_token';
 const USER_KEY = 'authentiscan_user';
 
+function handleUnauthorizedResponse() {
+  clearAuthSession();
+  window.dispatchEvent(new Event('auth-session-expired'));
+}
+
+function throwResponseError(response, payload, fallbackMessage) {
+  if (response.status === 401) {
+    handleUnauthorizedResponse();
+  }
+
+  throw new Error(payload?.message || fallbackMessage);
+}
+
 async function request(path, options = {}) {
   const { headers, ...requestOptions } = options;
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -17,7 +30,7 @@ async function request(path, options = {}) {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(payload?.message || 'The request could not be completed.');
+    throwResponseError(response, payload, 'The request could not be completed.');
   }
 
   return payload;
@@ -58,7 +71,7 @@ export async function uploadScanImage(image) {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(payload?.message || 'The image could not be uploaded.');
+    throwResponseError(response, payload, 'The image could not be uploaded.');
   }
 
   return payload;
@@ -81,7 +94,7 @@ export async function fetchUserScans() {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(payload?.message || 'Failed to fetch scan history.');
+    throwResponseError(response, payload, 'Failed to fetch scan history.');
   }
 
   return payload;
@@ -104,7 +117,7 @@ export async function fetchUserStats() {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(payload?.message || 'Failed to fetch user statistics.');
+    throwResponseError(response, payload, 'Failed to fetch user statistics.');
   }
 
   return payload;
@@ -160,7 +173,7 @@ export async function fetchMe() {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(payload?.message || 'Failed to fetch user profile.');
+    throwResponseError(response, payload, 'Failed to fetch user profile.');
   }
 
   return payload;

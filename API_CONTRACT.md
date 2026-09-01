@@ -44,6 +44,29 @@ Both endpoints return `data.token`. Web and Android must save this token and inc
 Authorization: Bearer <token>
 ```
 
+### Current User and Statistics
+
+`GET /auth/me` returns the signed-in user's account data and active plan.
+
+`GET /users/stats` returns the signed-in user's dashboard totals:
+
+```json
+{
+  "success": true,
+  "data": {
+    "total_scans": 4,
+    "queued_scans": 4,
+    "ai_generated_found": 0,
+    "scans_remaining": 1,
+    "plan": {
+      "name": "Free",
+      "scan_limit": 5,
+      "billing_cycle": "free"
+    }
+  }
+}
+```
+
 ## Upload a Scan
 
 `POST /scans`

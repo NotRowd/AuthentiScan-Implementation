@@ -7,15 +7,11 @@ import {
   ArrowRight, 
   UploadCloud,
   Cpu,
-  CheckCircle2,
-  AlertTriangle,
-  HelpCircle,
   Search,
   ArrowDown,
   Layers
 } from 'lucide-react';
 import MainLayout from '../components/layout/MainLayout';
-import Card from '../components/common/Card';
 import StatusBadge from '../components/common/StatusBadge';
 
 export default function LandingPage() {

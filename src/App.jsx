@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -11,7 +11,15 @@ import SubscriptionPage from './pages/SubscriptionPage';
 import { getAuthToken } from './services/api';
 
 function ProtectedRoute({ children }) {
-  const token = getAuthToken();
+  const [token, setToken] = useState(getAuthToken());
+
+  useEffect(() => {
+    const updateToken = () => setToken(getAuthToken());
+    window.addEventListener('auth-session-expired', updateToken);
+
+    return () => window.removeEventListener('auth-session-expired', updateToken);
+  }, []);
+
   if (!token) {
     return <Navigate to="/login" replace />;
   }

@@ -266,6 +266,7 @@ async function getStats(req, res, next) {
     const [scanStats] = await pool.execute(
       `SELECT
         COUNT(scans.scan_id) AS total_scans,
+        COALESCE(SUM(scans.status = 'queued'), 0) AS queued_scans,
         COALESCE(
           SUM(analysis_results.verdict = 'ai_generated'),
           0
@@ -289,6 +290,7 @@ async function getStats(req, res, next) {
     );
 
     const totalScans = Number(scanStats[0].total_scans);
+    const queuedScans = Number(scanStats[0].queued_scans);
     const aiGeneratedFound = Number(scanStats[0].ai_generated_found);
     const plan = subscriptions[0] || null;
 
@@ -301,6 +303,7 @@ async function getStats(req, res, next) {
       success: true,
       data: {
         total_scans: totalScans,
+        queued_scans: queuedScans,
         ai_generated_found: aiGeneratedFound,
         scans_remaining: scansRemaining,
         plan

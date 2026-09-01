@@ -131,7 +131,7 @@ export default function DashboardPage() {
           <Card icon={ShieldQuestion} title="Queued Scans" subtitle="Waiting for AI service">
             <div className="mt-2 flex items-baseline justify-between">
               <span className="text-3xl font-bold text-amber-400">
-                {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-amber-400" /> : (stats?.total_scans ?? 0)}
+                {isLoading ? <Loader2 className="w-6 h-6 animate-spin text-amber-400" /> : (stats?.queued_scans ?? 0)}
               </span>
               <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">
                 Queued

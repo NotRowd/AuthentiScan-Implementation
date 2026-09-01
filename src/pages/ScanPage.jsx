@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   UploadCloud, 
-  Image as ImageIcon, 
   Eye, 
   Box, 
   Sparkles, 
