@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShieldCheck, Menu, X, ArrowRight, LayoutDashboard, Scan, History, User } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShieldCheck, Menu, X, ArrowRight, LayoutDashboard, Scan, History, User, LogOut } from 'lucide-react';
+import { getAuthToken, getStoredUser, clearAuthSession } from '../../services/api';
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const token = getAuthToken();
+  const user = getStoredUser();
+
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate('/login');
+  };
+
+  const userFirstName = user?.first_name || 'Account';
 
   return (
     <header className="sticky top-0 z-50 glass-panel border-b border-slate-800">
@@ -36,18 +46,28 @@ export default function Header() {
           >
             Home
           </Link>
-          <Link
-            to="/dashboard"
-            className={`transition-colors hover:text-white ${location.pathname === '/dashboard' ? 'text-brand-400 font-semibold' : 'text-slate-300'}`}
-          >
-            Dashboard
-          </Link>
-          <Link
-            to="/scan"
-            className={`transition-colors hover:text-white ${location.pathname === '/scan' ? 'text-brand-400 font-semibold' : 'text-slate-300'}`}
-          >
-            Scan Image
-          </Link>
+          {token && (
+            <>
+              <Link
+                to="/dashboard"
+                className={`transition-colors hover:text-white ${location.pathname === '/dashboard' ? 'text-brand-400 font-semibold' : 'text-slate-300'}`}
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/scan"
+                className={`transition-colors hover:text-white ${location.pathname === '/scan' ? 'text-brand-400 font-semibold' : 'text-slate-300'}`}
+              >
+                Scan Image
+              </Link>
+              <Link
+                to="/history"
+                className={`transition-colors hover:text-white ${location.pathname === '/history' ? 'text-brand-400 font-semibold' : 'text-slate-300'}`}
+              >
+                History
+              </Link>
+            </>
+          )}
           <Link
             to="/subscription"
             className={`transition-colors hover:text-white ${location.pathname === '/subscription' ? 'text-brand-400 font-semibold' : 'text-slate-300'}`}
@@ -58,19 +78,41 @@ export default function Header() {
 
         {/* Auth Actions */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            to="/login"
-            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
-          >
-            Log In
-          </Link>
-          <Link
-            to="/register"
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white shadow-md shadow-brand-500/20 hover:shadow-brand-500/30 transition-all duration-200 flex items-center gap-1.5"
-          >
-            Get Started
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          {token ? (
+            <div className="flex items-center gap-3">
+              <Link
+                to="/profile"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-200 hover:text-white bg-slate-900 border border-slate-800"
+              >
+                <User className="w-4 h-4 text-brand-400" />
+                <span>Hi, {userFirstName}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-300 hover:text-rose-200 bg-rose-500/10 border border-rose-500/20 transition-colors flex items-center gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Log Out
+              </button>
+            </div>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Log In
+              </Link>
+              <Link
+                to="/register"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white shadow-md shadow-brand-500/20 hover:shadow-brand-500/30 transition-all duration-200 flex items-center gap-1.5"
+              >
+                Get Started
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -93,57 +135,67 @@ export default function Header() {
           >
             Home
           </Link>
-          <Link
-            to="/dashboard"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
-          >
-            <LayoutDashboard className="w-4 h-4" /> Dashboard
-          </Link>
-          <Link
-            to="/scan"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
-          >
-            <Scan className="w-4 h-4" /> Scan Image
-          </Link>
-          <Link
-            to="/history"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
-          >
-            <History className="w-4 h-4" /> Scan History
-          </Link>
-          <Link
-            to="/profile"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
-          >
-            <User className="w-4 h-4" /> Profile
-          </Link>
-          <Link
-            to="/subscription"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800"
-          >
-            Subscription
-          </Link>
-          <div className="pt-2 border-t border-slate-800 flex flex-col gap-2">
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800"
-            >
-              Log In
-            </Link>
-            <Link
-              to="/register"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center px-4 py-2 rounded-lg text-sm font-medium bg-brand-600 hover:bg-brand-500 text-white"
-            >
-              Register Account
-            </Link>
-          </div>
+          {token ? (
+            <>
+              <Link
+                to="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
+              >
+                <LayoutDashboard className="w-4 h-4" /> Dashboard
+              </Link>
+              <Link
+                to="/scan"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
+              >
+                <Scan className="w-4 h-4" /> Scan Image
+              </Link>
+              <Link
+                to="/history"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
+              >
+                <History className="w-4 h-4" /> Scan History
+              </Link>
+              <Link
+                to="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-2"
+              >
+                <User className="w-4 h-4" /> Profile ({userFirstName})
+              </Link>
+              <div className="pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg text-base font-medium text-rose-300 hover:bg-slate-800 flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" /> Log Out
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="pt-2 border-t border-slate-800 flex flex-col gap-2">
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800"
+              >
+                Log In
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full text-center px-4 py-2 rounded-lg text-sm font-medium bg-brand-600 hover:bg-brand-500 text-white"
+              >
+                Register Account
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </header>

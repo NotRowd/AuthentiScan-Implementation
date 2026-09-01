@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Scan, 
@@ -7,12 +7,29 @@ import {
   User, 
   CreditCard, 
   LogOut,
-  Sparkles,
-  HelpCircle
+  Sparkles
 } from 'lucide-react';
+import { getStoredUser, clearAuthSession } from '../../services/api';
 
 export default function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const user = getStoredUser();
+
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate('/login');
+  };
+
+  const userInitials = user?.first_name && user?.last_name
+    ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+    : 'US';
+
+  const userFullName = user?.first_name && user?.last_name
+    ? `${user.first_name} ${user.last_name}`
+    : 'User Account';
+
+  const planName = user?.plan?.name || 'Free';
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -67,18 +84,23 @@ export default function Sidebar() {
       {/* Bottom Profile Quick View */}
       <div className="p-4 border-t border-slate-800/80">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-slate-300 text-sm">
-              CS
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-brand-600/30 border border-brand-500/40 flex items-center justify-center font-bold text-brand-300 text-xs shrink-0">
+              {userInitials}
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-white leading-snug">Student User</span>
-              <span className="text-[10px] text-slate-400">Free Capstone Tier</span>
+            <div className="flex flex-col truncate">
+              <span className="text-xs font-medium text-white leading-snug truncate">{userFullName}</span>
+              <span className="text-[10px] text-slate-400 truncate">{planName} Plan</span>
             </div>
           </div>
-          <Link to="/login" title="Logout" className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg transition-colors">
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Logout"
+            className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg transition-colors shrink-0"
+          >
             <LogOut className="w-4 h-4" />
-          </Link>
+          </button>
         </div>
       </div>
     </aside>

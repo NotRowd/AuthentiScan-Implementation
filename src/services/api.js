@@ -122,6 +122,46 @@ export function saveAuthSession(data, rememberUser) {
   storage.setItem(USER_KEY, JSON.stringify(data.user));
 }
 
+export function clearAuthSession() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(USER_KEY);
+}
+
 export function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+}
+
+export function getStoredUser() {
+  const userJson = localStorage.getItem(USER_KEY) || sessionStorage.getItem(USER_KEY);
+  if (!userJson) return null;
+  try {
+    return JSON.parse(userJson);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchMe() {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error('Please log in first.');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(payload?.message || 'Failed to fetch user profile.');
+  }
+
+  return payload;
 }
