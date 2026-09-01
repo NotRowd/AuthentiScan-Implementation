@@ -2,6 +2,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const { pool } = require('../config/db');
 const { detectImageType } = require('../middlewares/uploadMiddleware');
+const { heatmapUrl, requestAnalysis } = require('../services/aiService');
 
 async function removeUploadedFile(file) {
   if (!file?.path) {
@@ -33,7 +34,7 @@ function parsePositiveInteger(value, fallback, maximum) {
 function formatAnalysis(row) {
   if (!row.result_id) {
     return {
-      status: 'pending_ai_service',
+      status: row.status === 'failed' ? 'failed' : row.status === 'processing' ? 'processing' : 'pending_ai_service',
       result: null
     };
   }
@@ -46,11 +47,72 @@ function formatAnalysis(row) {
       authentic_score: Number(row.authentic_score),
       ai_generated_score: Number(row.ai_generated_score),
       readable_explanation: row.readable_explanation,
-      heatmap_url: row.heatmap_path || null,
+      heatmap_url: heatmapUrl(row.heatmap_path),
       model_version: row.model_version,
       analyzed_at: row.analyzed_at
     }
   };
+}
+
+async function saveAnalysis(scanId, analysis, processingTimeMs) {
+  await pool.execute(
+    `INSERT INTO analysis_results
+      (scan_id, verdict, confidence_score, authentic_score, ai_generated_score,
+       heatmap_path, readable_explanation, raw_model_output, processing_time_ms, model_version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       verdict = VALUES(verdict),
+       confidence_score = VALUES(confidence_score),
+       authentic_score = VALUES(authentic_score),
+       ai_generated_score = VALUES(ai_generated_score),
+       heatmap_path = VALUES(heatmap_path),
+       readable_explanation = VALUES(readable_explanation),
+       raw_model_output = VALUES(raw_model_output),
+       processing_time_ms = VALUES(processing_time_ms),
+       model_version = VALUES(model_version),
+       analyzed_at = CURRENT_TIMESTAMP`,
+    [
+      scanId,
+      analysis.verdict,
+      analysis.confidence_score,
+      analysis.authentic_score,
+      analysis.ai_generated_score,
+      analysis.heatmap_path,
+      analysis.readable_explanation,
+      JSON.stringify(analysis.raw_model_output),
+      processingTimeMs,
+      analysis.model_version
+    ]
+  );
+}
+
+async function analyseUploadedScan(scanId, file) {
+  if (!process.env.AI_SERVICE_URL?.trim()) {
+    return { attempted: false };
+  }
+
+  await pool.execute("UPDATE scans SET status = 'processing' WHERE scan_id = ?", [scanId]);
+  const startedAt = Date.now();
+
+  try {
+    const analysis = await requestAnalysis({
+      filePath: file.path,
+      mimeType: file.mimetype,
+      originalFileName: file.originalname
+    });
+
+    if (!analysis) {
+      await pool.execute("UPDATE scans SET status = 'queued' WHERE scan_id = ?", [scanId]);
+      return { attempted: false };
+    }
+
+    await saveAnalysis(scanId, analysis, Date.now() - startedAt);
+    await pool.execute("UPDATE scans SET status = 'completed' WHERE scan_id = ?", [scanId]);
+    return { attempted: true, completed: true };
+  } catch (error) {
+    await pool.execute("UPDATE scans SET status = 'failed' WHERE scan_id = ?", [scanId]);
+    return { attempted: true, completed: false, error };
+  }
 }
 
 function formatScan(row) {
@@ -165,17 +227,18 @@ async function uploadScan(req, res, next) {
       ]
     );
 
-    const [scans] = await pool.execute(
-      `SELECT scan_id, original_file_name, mime_type, file_size_bytes, status, created_at
-       FROM scans
-       WHERE scan_id = ?`,
-      [result.insertId]
-    );
+    const analysisAttempt = await analyseUploadedScan(result.insertId, req.file);
+    const scan = await findOwnedScan(result.insertId, req.user.userId);
+    const formattedScan = formatScan(scan);
 
     return res.status(201).json({
       success: true,
-      message: 'Image uploaded and queued for analysis.',
-      data: scans[0]
+      message: analysisAttempt.completed
+        ? 'Image uploaded and analysed successfully.'
+        : analysisAttempt.attempted
+          ? 'Image uploaded, but AI analysis did not complete.'
+          : 'Image uploaded and queued for analysis.',
+      data: formattedScan
     });
   } catch (error) {
     try {

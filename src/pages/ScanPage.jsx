@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { 
   UploadCloud, 
-  Eye, 
-  Box, 
   Sparkles, 
   Layers, 
   AlertCircle,
@@ -10,12 +8,11 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Card from '../components/common/Card';
+import StatusBadge from '../components/common/StatusBadge';
 import { uploadScanImage } from '../services/api';
 
 export default function ScanPage() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [enableGradCam, setEnableGradCam] = useState(true);
-  const [enableObjectDetection, setEnableObjectDetection] = useState(true);
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedScan, setUploadedScan] = useState(null);
@@ -71,7 +68,7 @@ export default function ScanPage() {
         <div className="p-4 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
           <div className="text-xs text-brand-200 leading-relaxed">
-            <span className="font-semibold text-white">Upload connected:</span> Your image is securely stored and queued by the backend. AI inference (EfficientNet-B0), Grad-CAM, and object detection will appear after the AI service is integrated.
+            <span className="font-semibold text-white">AI analysis connected:</span> Your image is stored by the backend, classified by EfficientNet-B0, and returned with a Grad-CAM heatmap. Object detection is not part of the current model.
           </div>
         </div>
 
@@ -114,39 +111,42 @@ export default function ScanPage() {
               </div>
             </Card>
 
-            <Card title="2. Model Options & Feature Toggles" subtitle="Configure explainable AI outputs">
+            <Card title="2. Active Model Features" subtitle="Current explainable-AI capabilities">
               <div className="mt-4 space-y-4">
-                <label className="flex items-center justify-between p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 cursor-pointer hover:border-slate-700">
+                <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-900/60 border border-slate-800">
                   <div className="flex items-center gap-3">
-                    <Eye className="w-5 h-5 text-indigo-400" />
+                    <Sparkles className="w-5 h-5 text-indigo-400" />
                     <div>
                       <div className="text-sm font-semibold text-white">Grad-CAM Visual Heatmap</div>
-                      <div className="text-xs text-slate-400">Generate XAI activation overlays showing focus areas</div>
+                      <div className="text-xs text-slate-400">Enabled for every prediction to show influential image regions</div>
                     </div>
                   </div>
                   <input
                     type="checkbox"
-                    checked={enableGradCam}
-                    onChange={(e) => setEnableGradCam(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-brand-600 focus:ring-brand-500"
+                    checked
+                    readOnly
+                    aria-label="Grad-CAM heatmap enabled"
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-brand-600"
                   />
-                </label>
+                </div>
 
-                <label className="flex items-center justify-between p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 cursor-pointer hover:border-slate-700">
+                <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 opacity-60">
                   <div className="flex items-center gap-3">
-                    <Box className="w-5 h-5 text-cyan-400" />
+                    <Layers className="w-5 h-5 text-cyan-400" />
                     <div>
-                      <div className="text-sm font-semibold text-white">Object Detection Overlay</div>
-                      <div className="text-xs text-slate-400">Detect key objects and bounding boxes</div>
+                      <div className="text-sm font-semibold text-white">Object Detection Overlay — Not available</div>
+                      <div className="text-xs text-slate-400">A separate object-detection model has not been added yet</div>
                     </div>
                   </div>
                   <input
                     type="checkbox"
-                    checked={enableObjectDetection}
-                    onChange={(e) => setEnableObjectDetection(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-brand-600 focus:ring-brand-500"
+                    checked={false}
+                    readOnly
+                    disabled
+                    aria-label="Object detection unavailable"
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-950"
                   />
-                </label>
+                </div>
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-800">
@@ -171,15 +171,27 @@ export default function ScanPage() {
 
           {/* Results Workspace Placeholder Sidebar */}
           <div className="space-y-6">
-            <Card title="Analysis Output Area" subtitle="Placeholder for future model results">
+            <Card title="Analysis Output Area" subtitle="EfficientNet-B0 prediction result">
               <div className="mt-4 flex flex-col items-center justify-center p-8 rounded-xl border border-slate-800 bg-slate-900/40 text-center min-h-[300px]">
-                {uploadedScan ? (
+                {uploadedScan?.analysis ? (
                   <>
                     <CheckCircle2 className="w-10 h-10 text-emerald-400 mb-3" />
-                    <p className="text-sm font-semibold text-emerald-300">Image uploaded successfully</p>
-                    <p className="text-xs text-slate-400 mt-2 max-w-xs">
-                      Scan #{uploadedScan.scan_id} is queued for the AI service. The image and its scan record are now stored securely.
-                    </p>
+                    <p className="text-sm font-semibold text-emerald-300">Analysis completed</p>
+                    <div className="mt-3"><StatusBadge status={uploadedScan.analysis.verdict} /></div>
+                    <p className="text-xs text-slate-400 mt-3 max-w-xs">{uploadedScan.analysis.readable_explanation}</p>
+                    {uploadedScan.analysis.heatmap_url && (
+                      <img
+                        src={uploadedScan.analysis.heatmap_url}
+                        alt="Grad-CAM heatmap for the uploaded image"
+                        className="mt-4 max-h-44 rounded-lg border border-slate-700 object-contain"
+                      />
+                    )}
+                  </>
+                ) : uploadedScan ? (
+                  <>
+                    <AlertCircle className="w-10 h-10 text-amber-400 mb-3" />
+                    <p className="text-sm font-semibold text-amber-300">Image uploaded; analysis is unavailable</p>
+                    <p className="text-xs text-slate-400 mt-2 max-w-xs">Scan #{uploadedScan.scan_id} remains stored securely. Check Scan History for its current status.</p>
                   </>
                 ) : (
                   <>
@@ -195,15 +207,15 @@ export default function ScanPage() {
               <div className="mt-4 pt-4 border-t border-slate-800 space-y-2 text-xs text-slate-400">
                 <div className="flex items-center justify-between py-1">
                   <span>Classification Result:</span>
-                  <span className="font-mono text-slate-500">Pending AI service</span>
+                  <span className="font-mono text-slate-500">{uploadedScan?.analysis?.verdict || 'Awaiting upload'}</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span>Confidence Score:</span>
-                  <span className="font-mono text-slate-500">Not available yet</span>
+                  <span className="font-mono text-slate-500">{uploadedScan?.analysis ? `${(uploadedScan.analysis.confidence_score * 100).toFixed(2)}%` : 'Not available yet'}</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span>Grad-CAM Status:</span>
-                  <span className="font-mono text-slate-500">{enableGradCam ? 'Selected for future AI' : 'Not selected'}</span>
+                  <span className="font-mono text-slate-500">{uploadedScan?.analysis?.heatmap_url ? 'Generated' : 'Available after analysis'}</span>
                 </div>
               </div>
             </Card>

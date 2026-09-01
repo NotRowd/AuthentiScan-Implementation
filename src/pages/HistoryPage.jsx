@@ -74,7 +74,7 @@ export default function HistoryPage() {
           <div>
             <h1 className="text-2xl font-bold text-white">Scan History</h1>
             <p className="text-sm text-slate-400 mt-1">
-              Log of your uploaded images queued for deepfake analysis.
+              Log of your uploaded images and their AI analysis results.
             </p>
           </div>
           <button
@@ -92,7 +92,7 @@ export default function HistoryPage() {
         <div className="p-4 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
           <div className="text-xs text-brand-200 leading-relaxed">
-            <span className="font-semibold text-white">Backend Connected:</span> Showing your uploaded images stored securely in the database. Images marked as <span className="font-semibold text-white font-mono">Queued for AI</span> will be processed automatically when the AI microservice is integrated.
+            <span className="font-semibold text-white">AI analysis connected:</span> Completed scans include the EfficientNet-B0 result. Queued, processing, or failed entries can be reviewed here while the AI service is unavailable.
           </div>
         </div>
 
@@ -179,7 +179,7 @@ export default function HistoryPage() {
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-medium cursor-default">
-                          Pending AI
+                          {item.analysis ? `${(item.analysis.confidence_score * 100).toFixed(1)}% confidence` : 'Pending AI'}
                         </span>
                       </td>
                     </tr>

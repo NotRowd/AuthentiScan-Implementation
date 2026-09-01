@@ -77,19 +77,26 @@ This is a protected endpoint. Set the request body type to **form-data** and use
 | --- | --- | --- | --- |
 | `image` | File | Yes | JPEG, PNG, or WebP; maximum 10 MB |
 
-Initial success response (`201 Created`):
+Success response (`201 Created`):
 
 ```json
 {
   "success": true,
-  "message": "Image uploaded and queued for analysis.",
+  "message": "Image uploaded and analysed successfully.",
   "data": {
     "scan_id": 1,
     "original_file_name": "example.jpg",
     "mime_type": "image/jpeg",
     "file_size_bytes": 245100,
-    "status": "queued",
-    "created_at": "2026-08-26T00:00:00.000Z"
+    "status": "completed",
+    "analysis_status": "completed",
+    "analysis": {
+      "verdict": "authentic",
+      "confidence_score": 0.91,
+      "authentic_score": 0.91,
+      "ai_generated_score": 0.09,
+      "heatmap_url": "http://127.0.0.1:5001/heatmaps/example.png"
+    }
   }
 }
 ```
@@ -116,16 +123,19 @@ The optional `limit` is from 1 to 100. The response contains `data.scans` and `d
 
 `GET /scans/:scanId`
 
-Before AI integration, an uploaded image returns:
+When AI analysis completes, an uploaded image returns:
 
 ```json
 {
   "success": true,
   "data": {
     "scan_id": 1,
-    "status": "queued",
-    "analysis_status": "pending_ai_service",
-    "analysis": null,
+    "status": "completed",
+    "analysis_status": "completed",
+    "analysis": {
+      "verdict": "authentic",
+      "confidence_score": 0.91
+    },
     "image_url": "/api/v1/scans/1/image"
   }
 }
@@ -137,9 +147,9 @@ Before AI integration, an uploaded image returns:
 
 This returns the uploaded image itself. It is protected so another user cannot view it without owning that scan.
 
-## Planned AI Service Contract
+## AI Service Contract
 
-The backend will later send the stored image to the AI service. Until the service exists, the backend keeps the scan `queued` and returns `analysis_status: "pending_ai_service"`; it does not create fake predictions. The AI service should return this shape:
+The backend sends a stored image to the local AI service at `AI_SERVICE_URL`. When it succeeds, it saves the result in `analysis_results` and changes the scan to `completed`. If AI analysis cannot be reached or fails, the upload remains stored and its scan status becomes `failed`.
 
 ```json
 {

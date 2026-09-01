@@ -13,6 +13,7 @@ export default function StatusBadge({ status }) {
         </span>
       );
     case 'ai-generated':
+    case 'ai_generated':
     case 'generated':
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
