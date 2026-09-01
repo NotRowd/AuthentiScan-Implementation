@@ -44,3 +44,15 @@ Open `http://127.0.0.1:5001/docs` for interactive API documentation.
 ```
 
 The Express backend must not call this service until `/predict` has been tested with a real image and the label mapping is confirmed.
+
+## Determine the class mapping safely
+
+The `.keras` file does **not** contain a class-label mapping. Do not assume that a score near `1` means AI-generated. Use at least 10 known authentic camera images and 10 known AI-generated images that were not used to train the model. Place them locally in two folders (the `calibration/` folder is ignored by Git) and run:
+
+```powershell
+.\.venv\Scripts\python.exe .\calibrate_label_mapping.py `
+  --authentic-dir .\calibration\authentic `
+  --ai-generated-dir .\calibration\ai_generated
+```
+
+The tool compares the model's raw score for both labelled sets and reports the safer `AI_POSITIVE_LABEL` value. Keep the output as evidence for the adviser. If neither mapping is at least 80% accurate on the held-out images, do not connect the model to the backend yet.
