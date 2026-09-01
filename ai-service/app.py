@@ -6,8 +6,11 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.staticfiles import StaticFiles
+
+load_dotenv(Path(__file__).with_name(".env"))
 
 from gradcam import generate_gradcam, overlay_heatmap
 from model_service import (
