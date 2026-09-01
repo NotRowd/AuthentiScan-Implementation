@@ -1,42 +1,98 @@
-import React, { useState } from 'react';
-import { Search, Filter, FileDown, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusBadge from '../components/common/StatusBadge';
+import { fetchUserScans } from '../services/api';
 
 export default function HistoryPage() {
+  const [scans, setScans] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Sample placeholder entries for table layout demonstration only
-  const sampleHistory = [
-    { id: 'SCN-1001', name: 'sample_portrait_01.jpg', date: '2026-08-20', status: 'authentic', resolution: '1920x1080' },
-    { id: 'SCN-1002', name: 'synthetic_landscape.png', date: '2026-08-21', status: 'ai-generated', resolution: '1024x1024' },
-    { id: 'SCN-1003', name: 'social_media_avatar.jpg', date: '2026-08-21', status: 'authentic', resolution: '800x800' },
-    { id: 'SCN-1004', name: 'low_res_snapshot.webp', date: '2026-08-22', status: 'uncertain', resolution: '640x480' },
-    { id: 'SCN-1005', name: 'diffusion_render_v2.png', date: '2026-08-22', status: 'ai-generated', resolution: '2048x2048' },
-  ];
+  const loadScans = async () => {
+    setError('');
 
-  const filteredItems = sampleHistory.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || item.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = statusFilter === 'all' || item.status === statusFilter;
+    try {
+      const response = await fetchUserScans();
+      setScans(response.data?.scans || []);
+    } catch (err) {
+      setError(err.message || 'Failed to load scan history.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchUserScans()
+      .then((response) => {
+        if (isMounted) {
+          setScans(response.data?.scans || []);
+          setIsLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(err.message || 'Failed to load scan history.');
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredItems = scans.filter((item) => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      item.original_file_name.toLowerCase().includes(searchLower) ||
+      String(item.scan_id).includes(searchLower);
+
+    const scanVerdict = item.analysis?.verdict || 'queued';
+    const matchesFilter =
+      statusFilter === 'all' ||
+      (statusFilter === 'queued' && (!item.analysis || scanVerdict === 'queued')) ||
+      scanVerdict === statusFilter;
+
     return matchesSearch && matchesFilter;
   });
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return 'Unknown size';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Scan History</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Log of static image scans and report archives placeholder.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Scan History</h1>
+            <p className="text-sm text-slate-400 mt-1">
+              Log of your uploaded images queued for deepfake analysis.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={loadScans}
+            disabled={isLoading}
+            className="self-start sm:self-auto inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/80 text-xs text-slate-300 hover:text-white hover:border-brand-500 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
-        {/* Sample Data Disclaimer Banner */}
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-          <div className="text-xs text-amber-200 leading-relaxed">
-            <span className="font-semibold text-white">Sample Layout Notice:</span> The history entries below are sample placeholder records illustrating how logged static image scans will be structured once backend integration is live.
+        {/* Real Status Notice Banner */}
+        <div className="p-4 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
+          <div className="text-xs text-brand-200 leading-relaxed">
+            <span className="font-semibold text-white">Backend Connected:</span> Showing your uploaded images stored securely in the database. Images marked as <span className="font-semibold text-white font-mono">Queued for AI</span> will be processed automatically when the AI microservice is integrated.
           </div>
         </div>
 
@@ -48,7 +104,7 @@ export default function HistoryPage() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search sample entries..."
+              placeholder="Search by filename or ID..."
               className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
             />
           </div>
@@ -63,9 +119,10 @@ export default function HistoryPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="bg-slate-900 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500"
             >
-              <option value="all">All Results</option>
+              <option value="all">All Scans</option>
+              <option value="queued">Queued for AI</option>
               <option value="authentic">Authentic</option>
-              <option value="ai-generated">AI-Generated</option>
+              <option value="ai_generated">AI-Generated</option>
               <option value="uncertain">Uncertain</option>
             </select>
           </div>
@@ -79,35 +136,60 @@ export default function HistoryPage() {
                 <tr>
                   <th className="py-3.5 px-4">Scan ID</th>
                   <th className="py-3.5 px-4">Filename</th>
-                  <th className="py-3.5 px-4">Date processed</th>
-                  <th className="py-3.5 px-4">Resolution</th>
-                  <th className="py-3.5 px-4">Result</th>
-                  <th className="py-3.5 px-4 text-right">PDF Report</th>
+                  <th className="py-3.5 px-4">Date Uploaded</th>
+                  <th className="py-3.5 px-4">File Size</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-right">Report</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 text-slate-300">
-                {filteredItems.length > 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-brand-400" />
+                        <span>Loading scan history from backend...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 px-4 text-center">
+                      <div className="p-3 rounded-lg border border-rose-500/40 bg-rose-500/10 text-xs text-rose-200 inline-block">
+                        {error}
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredItems.length > 0 ? (
                   filteredItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-900/40 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-slate-400">{item.id}</td>
-                      <td className="py-3.5 px-4 font-medium text-white">{item.name} <span className="text-[10px] text-amber-400/80">(Sample)</span></td>
-                      <td className="py-3.5 px-4 text-slate-400">{item.date}</td>
-                      <td className="py-3.5 px-4 text-slate-400">{item.resolution}</td>
+                    <tr key={item.scan_id} className="hover:bg-slate-900/40 transition-colors">
+                      <td className="py-3.5 px-4 font-mono text-slate-400">#{item.scan_id}</td>
+                      <td className="py-3.5 px-4 font-medium text-white">{item.original_file_name}</td>
+                      <td className="py-3.5 px-4 text-slate-400">
+                        {new Date(item.created_at).toLocaleString()}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-400">{formatFileSize(item.file_size_bytes)}</td>
                       <td className="py-3.5 px-4">
-                        <StatusBadge status={item.status} />
+                        <StatusBadge
+                          status={
+                            item.analysis?.verdict ||
+                            (item.status === 'queued' ? 'Queued for AI' : item.status)
+                          }
+                        />
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <span className="inline-flex items-center gap-1 text-xs text-slate-500 font-medium cursor-default">
-                          <FileDown className="w-3.5 h-3.5" />
-                          Sample Report
+                          Pending AI
                         </span>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-500">
-                      No sample scan history entries matching filter criteria.
+                    <td colSpan={6} className="py-12 text-center text-slate-500">
+                      {scans.length === 0
+                        ? 'No image scans found. Upload your first image on the Scan page!'
+                        : 'No scan history entries matching filter criteria.'}
                     </td>
                   </tr>
                 )}
@@ -115,17 +197,11 @@ export default function HistoryPage() {
             </table>
           </div>
 
-          {/* Pagination UI Placeholder */}
+          {/* Pagination Footer */}
           <div className="p-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-            <span>Showing {filteredItems.length} sample entries</span>
-            <div className="flex gap-2">
-              <button disabled className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed">
-                Previous
-              </button>
-              <button disabled className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed">
-                Next
-              </button>
-            </div>
+            <span>
+              Showing {filteredItems.length} of {scans.length} scans
+            </span>
           </div>
         </div>
       </div>
