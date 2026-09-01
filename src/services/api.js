@@ -37,6 +37,33 @@ export function loginAccount(credentials) {
   });
 }
 
+export async function uploadScanImage(image) {
+  const token = getAuthToken();
+
+  if (!token) {
+    throw new Error('Please log in before uploading an image.');
+  }
+
+  const formData = new FormData();
+  formData.append('image', image);
+
+  const response = await fetch(`${API_BASE_URL}/scans`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(payload?.message || 'The image could not be uploaded.');
+  }
+
+  return payload;
+}
+
 export function saveAuthSession(data, rememberUser) {
   const storage = rememberUser ? localStorage : sessionStorage;
 
@@ -52,4 +79,3 @@ export function saveAuthSession(data, rememberUser) {
 export function getAuthToken() {
   return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
 }
-

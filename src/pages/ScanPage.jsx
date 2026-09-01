@@ -7,19 +7,54 @@ import {
   Sparkles, 
   Layers, 
   AlertCircle,
-  FileText
+  CheckCircle2
 } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Card from '../components/common/Card';
+import { uploadScanImage } from '../services/api';
 
 export default function ScanPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [enableGradCam, setEnableGradCam] = useState(true);
   const [enableObjectDetection, setEnableObjectDetection] = useState(true);
+  const [error, setError] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedScan, setUploadedScan] = useState(null);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      setError('');
+      setUploadedScan(null);
+
+      if (file.size > 10 * 1024 * 1024) {
+        setSelectedFile(null);
+        setError('This image is too large. The upload limit is 10 MB.');
+        return;
+      }
+
+      setSelectedFile(file);
+    }
+  };
+
+  const handleUpload = async () => {
+    setError('');
+    setUploadedScan(null);
+
+    if (!selectedFile) {
+      setError('Choose a JPG, PNG, or WebP image before uploading.');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const response = await uploadScanImage(selectedFile);
+      setUploadedScan(response.data);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -37,14 +72,14 @@ export default function ScanPage() {
         <div className="p-4 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
           <div className="text-xs text-brand-200 leading-relaxed">
-            <span className="font-semibold text-white">Frontend Scaffold Mode:</span> This layout provides the user interface for static image upload and feature configuration. AI inference (EfficientNet-B0) will be connected when backend integration is enabled.
+            <span className="font-semibold text-white">Upload connected:</span> Your image is securely stored and queued by the backend. AI inference (EfficientNet-B0), Grad-CAM, and object detection will appear after the AI service is integrated.
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Upload Zone & Options */}
           <div className="lg:col-span-2 space-y-6">
-            <Card title="1. Static Image Upload" subtitle="Supported formats: JPG, PNG, WebP (Max 15MB)">
+            <Card title="1. Static Image Upload" subtitle="Supported formats: JPG, PNG, WebP (Max 10MB)">
               <div className="mt-4 border-2 border-dashed border-slate-700 hover:border-brand-500/60 rounded-xl p-8 text-center transition-colors bg-slate-900/40 relative">
                 <input
                   type="file"
@@ -118,12 +153,20 @@ export default function ScanPage() {
               <div className="mt-6 pt-4 border-t border-slate-800">
                 <button
                   type="button"
-                  className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white shadow-xl shadow-brand-500/20 transition-all flex items-center justify-center gap-2"
+                  onClick={handleUpload}
+                  disabled={isUploading}
+                  className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-70 text-white shadow-xl shadow-brand-500/20 transition-all flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-5 h-5" />
-                  Analyze Image (Frontend Ready)
+                  {isUploading ? 'Uploading image...' : 'Upload Image for Analysis'}
                 </button>
               </div>
+
+              {error && (
+                <p role="alert" className="mt-4 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                  {error}
+                </p>
+              )}
             </Card>
           </div>
 
@@ -131,25 +174,37 @@ export default function ScanPage() {
           <div className="space-y-6">
             <Card title="Analysis Output Area" subtitle="Placeholder for future model results">
               <div className="mt-4 flex flex-col items-center justify-center p-8 rounded-xl border border-slate-800 bg-slate-900/40 text-center min-h-[300px]">
-                <Layers className="w-10 h-10 text-slate-600 mb-3" />
-                <p className="text-sm font-semibold text-slate-400">No active analysis yet</p>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs">
-                  Once AI backend is connected, classification results, confidence scores, and Grad-CAM heatmaps will render here.
-                </p>
+                {uploadedScan ? (
+                  <>
+                    <CheckCircle2 className="w-10 h-10 text-emerald-400 mb-3" />
+                    <p className="text-sm font-semibold text-emerald-300">Image uploaded successfully</p>
+                    <p className="text-xs text-slate-400 mt-2 max-w-xs">
+                      Scan #{uploadedScan.scan_id} is queued for the AI service. The image and its scan record are now stored securely.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Layers className="w-10 h-10 text-slate-600 mb-3" />
+                    <p className="text-sm font-semibold text-slate-400">No active analysis yet</p>
+                    <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                      Upload an image to save it and queue it for the future AI analysis service.
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="mt-4 pt-4 border-t border-slate-800 space-y-2 text-xs text-slate-400">
                 <div className="flex items-center justify-between py-1">
                   <span>Classification Result:</span>
-                  <span className="font-mono text-slate-500">Waiting for backend</span>
+                  <span className="font-mono text-slate-500">Pending AI service</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span>Confidence Score:</span>
-                  <span className="font-mono text-slate-500">Waiting for backend</span>
+                  <span className="font-mono text-slate-500">Not available yet</span>
                 </div>
                 <div className="flex items-center justify-between py-1">
                   <span>Grad-CAM Status:</span>
-                  <span className="font-mono text-slate-500">{enableGradCam ? 'Enabled' : 'Disabled'}</span>
+                  <span className="font-mono text-slate-500">{enableGradCam ? 'Selected for future AI' : 'Not selected'}</span>
                 </div>
               </div>
             </Card>
