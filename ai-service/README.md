@@ -10,19 +10,14 @@ py -m venv .venv
 Copy-Item .env.example .env
 ```
 
-Before using `/predict`, confirm the training-label mapping with the AI member and set one of these in `.env`:
-
-```text
-AI_POSITIVE_LABEL=ai_generated
-```
-
-or:
+The team training notebook confirmed the binary class mapping: `fake = 0` and
+`real = 1`. Therefore set this local value in `.env`:
 
 ```text
 AI_POSITIVE_LABEL=authentic
 ```
 
-The service deliberately refuses predictions until this mapping is confirmed.
+The service deliberately refuses predictions when this value is absent or invalid.
 
 ## Run
 
@@ -43,16 +38,18 @@ Open `http://127.0.0.1:5001/docs` for interactive API documentation.
 .\.venv\Scripts\python.exe -m unittest discover -s tests
 ```
 
-The Express backend must not call this service until `/predict` has been tested with a real image and the label mapping is confirmed.
+The Express backend calls this service when `AI_SERVICE_URL` is configured. Keep the AI service running on port `5001` during local end-to-end testing.
 
-## Determine the class mapping safely
+## Evaluate the model before claiming accuracy
 
-The `.keras` file does **not** contain a class-label mapping. Do not assume that a score near `1` means AI-generated. Use at least 10 known authentic camera images and 10 known AI-generated images that were not used to train the model. Place them locally in two folders (the `calibration/` folder is ignored by Git) and run:
+The class mapping is confirmed, but the model's real accuracy still needs independent testing. Use at least 10 known authentic camera images and 10 known AI-generated images that were **not** used during training. Place them locally in two folders (the `calibration/` folder is ignored by Git), then run:
 
 ```powershell
-.\.venv\Scripts\python.exe .\calibrate_label_mapping.py `
+.\.venv\Scripts\python.exe .\evaluate_model.py `
   --authentic-dir .\calibration\authentic `
-  --ai-generated-dir .\calibration\ai_generated
+  --ai-generated-dir .\calibration\ai_generated `
+  --uncertainty-margin 0.05 `
+  --report .\evaluation-report.json
 ```
 
-The tool compares the model's raw score for both labelled sets and reports the safer `AI_POSITIVE_LABEL` value. Keep the output as evidence for the adviser. If neither mapping is at least 80% accurate on the held-out images, do not connect the model to the backend yet.
+The report includes overall accuracy, decisive accuracy, uncertainty coverage, false AI-generated results, missed AI-generated results, and every tested image score. Keep it as adviser evidence. Do not claim the model is accurate until this report uses an independently labelled dataset.

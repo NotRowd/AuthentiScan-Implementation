@@ -8,6 +8,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from model_service import classify_score, verified_image_format
 from calibrate_label_mapping import mapping_from_means
+from evaluate_model import evaluate_records, verdict_from_authentic_score
 
 
 class ClassifyScoreTests(unittest.TestCase):
@@ -48,6 +49,21 @@ class ClassifyScoreTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "Only JPEG, PNG, and WebP"):
             verified_image_format(image_bytes.getvalue())
+
+    def test_evaluation_counts_correct_and_uncertain_predictions(self):
+        records = [
+            {"expected": "authentic", "predicted": "authentic"},
+            {"expected": "ai_generated", "predicted": "ai_generated"},
+            {"expected": "authentic", "predicted": "uncertain"},
+            {"expected": "ai_generated", "predicted": "authentic"},
+        ]
+
+        result = evaluate_records(records)
+
+        self.assertEqual(result["correct_predictions"], 2)
+        self.assertEqual(result["uncertain_predictions"], 1)
+        self.assertEqual(result["missed_ai_generated"], 1)
+        self.assertEqual(verdict_from_authentic_score(0.5, 0.05), "uncertain")
 
 
 if __name__ == "__main__":
