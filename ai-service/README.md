@@ -2,6 +2,14 @@
 
 This FastAPI service wraps the team's EfficientNet-B0 Keras model and Grad-CAM utility. It is designed to run separately from the Express backend on port `5001`.
 
+## Model foundation
+
+The portable model contract is stored in `model/model-metadata.json`, beside the
+`.keras` model. It records the fixed manuscript architecture, input shape,
+class mapping, model version, and Grad-CAM layer names. The service validates
+this contract at startup and refuses an incompatible handoff instead of silently
+serving it. See `TRAINING_HANDOFF.md` before training or replacing a model.
+
 ## Setup
 
 ```powershell
@@ -11,13 +19,7 @@ Copy-Item .env.example .env
 ```
 
 The team training notebook confirmed the binary class mapping: `fake = 0` and
-`real = 1`. Therefore set this local value in `.env`:
-
-```text
-AI_POSITIVE_LABEL=authentic
-```
-
-The service deliberately refuses predictions when this value is absent or invalid.
+`real = 1`. This mapping is stored and validated in `model/model-metadata.json`.
 
 ## Run
 

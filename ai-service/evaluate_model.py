@@ -13,6 +13,7 @@ from pathlib import Path
 from statistics import mean
 
 from calibrate_label_mapping import image_files
+from model_metadata import ModelMetadata, load_model_metadata
 from model_service import load_authentiscan_model, preprocess_image
 
 
@@ -22,11 +23,14 @@ def verdict_from_authentic_score(score: float, uncertainty_margin: float) -> str
     return "authentic" if score > 0.5 else "ai_generated"
 
 
-def score_directory(model, directory: Path, expected: str, uncertainty_margin: float) -> list[dict]:
+def score_directory(
+    model, metadata: ModelMetadata, directory: Path, expected: str, uncertainty_margin: float
+) -> list[dict]:
     records: list[dict] = []
     for image_path in image_files(directory):
-        model_input, _ = preprocess_image(image_path.read_bytes())
-        authentic_score = float(model.predict(model_input, verbose=0)[0][0])
+        model_input, _ = preprocess_image(image_path.read_bytes(), metadata.input_size)
+        positive_score = float(model.predict(model_input, verbose=0)[0][0])
+        authentic_score = positive_score if metadata.positive_label == "authentic" else 1.0 - positive_score
         records.append(
             {
                 "file_name": image_path.name,
@@ -87,10 +91,13 @@ def main() -> None:
         if not directory.is_dir():
             raise SystemExit(f"Directory does not exist: {directory}")
 
-    model = load_authentiscan_model()
-    authentic_records = score_directory(model, args.authentic_dir, "authentic", args.uncertainty_margin)
+    metadata = load_model_metadata()
+    model = load_authentiscan_model(metadata)
+    authentic_records = score_directory(
+        model, metadata, args.authentic_dir, "authentic", args.uncertainty_margin
+    )
     ai_generated_records = score_directory(
-        model, args.ai_generated_dir, "ai_generated", args.uncertainty_margin
+        model, metadata, args.ai_generated_dir, "ai_generated", args.uncertainty_margin
     )
     if not authentic_records or not ai_generated_records:
         raise SystemExit("Each directory needs at least one JPG, JPEG, PNG, or WebP image.")
@@ -98,8 +105,8 @@ def main() -> None:
 
     summary = evaluate_records(records)
     report = {
-        "model_version": "authentiscan-efficientnet-b0-v2",
-        "label_mapping": {"fake": 0, "real": 1},
+        "model_version": metadata.model_version,
+        "label_mapping": metadata.class_indices,
         "uncertainty_margin": args.uncertainty_margin,
         "summary": summary,
         "mean_authentic_score_for_known_authentic_images": mean(

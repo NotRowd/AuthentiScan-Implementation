@@ -6,12 +6,21 @@ import sys
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from model_metadata import load_model_metadata
 from model_service import classify_score, verified_image_format
 from calibrate_label_mapping import mapping_from_means
 from evaluate_model import evaluate_records, verdict_from_authentic_score
 
 
 class ClassifyScoreTests(unittest.TestCase):
+    def test_model_metadata_documents_the_required_training_contract(self):
+        metadata = load_model_metadata()
+
+        self.assertEqual(metadata.architecture, "EfficientNetB0")
+        self.assertEqual(metadata.input_size, (224, 224))
+        self.assertEqual(metadata.class_indices, {"fake": 0, "real": 1})
+        self.assertEqual(metadata.positive_label, "authentic")
+
     def test_ai_generated_positive_class(self):
         result = classify_score(0.9, "ai_generated", 0.05)
 

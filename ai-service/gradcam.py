@@ -3,25 +3,25 @@ import numpy as np
 import tensorflow as tf
 import cv2
 
-def generate_gradcam(model, img_array, last_conv_layer_name='top_conv'):
+def generate_gradcam(model, img_array, gradcam_metadata):
     """
     Generates a Grad-CAM heatmap for a given preprocessed image array.
     model: the loaded AuthentiScan Keras model
     img_array: preprocessed image, shape (1, 224, 224, 3)
     Returns: heatmap as a numpy array (7x7, values 0-1)
     """
-    base_model = model.get_layer('efficientnetb0')
+    base_model = model.get_layer(gradcam_metadata.base_model_layer)
 
     grad_model = tf.keras.models.Model(
         base_model.inputs,
-        [base_model.get_layer(last_conv_layer_name).output, base_model.output],
+        [base_model.get_layer(gradcam_metadata.last_conv_layer).output, base_model.output],
     )
 
     with tf.GradientTape() as tape:
         conv_outputs, base_output = grad_model([img_array])
-        x = model.get_layer('global_average_pooling2d')(base_output)
-        x = model.get_layer('dropout')(x)
-        predictions = model.get_layer('dense')(x)
+        x = model.get_layer(gradcam_metadata.pooling_layer)(base_output)
+        x = model.get_layer(gradcam_metadata.dropout_layer)(x)
+        predictions = model.get_layer(gradcam_metadata.output_layer)(x)
         loss = predictions[:, 0]
 
     grads = tape.gradient(loss, conv_outputs)

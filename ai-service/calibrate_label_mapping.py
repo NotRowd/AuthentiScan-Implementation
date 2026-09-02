@@ -1,4 +1,9 @@
-"""Determine the model's sigmoid-label mapping using labelled test images."""
+"""Inspect raw-score separation for a candidate AuthentiScan model.
+
+The production mapping is fixed by model metadata: fake=0 and real=1. This
+utility remains useful when reviewing a newly trained candidate before it is
+accepted into the service.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +11,7 @@ import argparse
 from pathlib import Path
 from statistics import mean
 
+from model_metadata import ModelMetadata, load_model_metadata
 from model_service import load_authentiscan_model, preprocess_image
 
 SUPPORTED_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
@@ -18,10 +24,10 @@ def image_files(directory: Path) -> list[Path]:
     )
 
 
-def scores_for(model, directory: Path) -> list[float]:
+def scores_for(model, metadata: ModelMetadata, directory: Path) -> list[float]:
     scores: list[float] = []
     for image_path in image_files(directory):
-        image_array, _ = preprocess_image(image_path.read_bytes())
+        image_array, _ = preprocess_image(image_path.read_bytes(), metadata.input_size)
         scores.append(float(model.predict(image_array, verbose=0)[0][0]))
     return scores
 
@@ -58,9 +64,10 @@ def main() -> None:
         if not directory.is_dir():
             raise SystemExit(f"Directory does not exist: {directory}")
 
-    model = load_authentiscan_model()
-    authentic_scores = scores_for(model, args.authentic_dir)
-    generated_scores = scores_for(model, args.ai_generated_dir)
+    metadata = load_model_metadata()
+    model = load_authentiscan_model(metadata)
+    authentic_scores = scores_for(model, metadata, args.authentic_dir)
+    generated_scores = scores_for(model, metadata, args.ai_generated_dir)
     if not authentic_scores or not generated_scores:
         raise SystemExit("Each directory needs at least one JPG, JPEG, PNG, or WebP image.")
 
@@ -70,12 +77,13 @@ def main() -> None:
     ai_positive_accuracy = accuracy_for_mapping(authentic_scores, generated_scores, "ai_generated")
     authentic_positive_accuracy = accuracy_for_mapping(authentic_scores, generated_scores, "authentic")
 
-    print("Calibration results (raw model score range: 0 to 1)")
+    print(f"Candidate model: {metadata.model_version}")
+    print("Fixed mapping: fake = 0, real = 1 (raw score 1 means authentic)")
     print(f"Known authentic images: {len(authentic_scores)}, mean score: {authentic_mean:.4f}")
     print(f"Known AI-generated images: {len(generated_scores)}, mean score: {generated_mean:.4f}")
     print(f"Accuracy if 1 = ai_generated: {ai_positive_accuracy:.1%}")
     print(f"Accuracy if 1 = authentic: {authentic_positive_accuracy:.1%}")
-    print(f"Suggested AI_POSITIVE_LABEL: {recommended}")
+    print(f"Observed higher-score class: {recommended}")
 
     if min(len(authentic_scores), len(generated_scores)) < 10:
         print("WARNING: Use at least 10 independently sourced images per class before trusting this result.")

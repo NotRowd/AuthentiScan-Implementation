@@ -9,21 +9,43 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image, UnidentifiedImageError
 
+from model_metadata import ModelMetadata
 
-MODEL_PATH = Path(__file__).parent / "model" / "authentiscan_efficientnet_b0_v2.keras"
-IMAGE_SIZE = (224, 224)
 SUPPORTED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP"}
 PositiveLabel = Literal["ai_generated", "authentic"]
 
 
-def load_authentiscan_model() -> tf.keras.Model:
-    if not MODEL_PATH.is_file():
-        raise FileNotFoundError(f"Model file was not found: {MODEL_PATH}")
+def load_authentiscan_model(metadata: ModelMetadata) -> tf.keras.Model:
+    if not metadata.model_path.is_file():
+        raise FileNotFoundError(f"Model file was not found: {metadata.model_path}")
 
-    return tf.keras.models.load_model(MODEL_PATH, compile=False)
+    model = tf.keras.models.load_model(metadata.model_path, compile=False)
+    validate_model_contract(model, metadata)
+    return model
 
 
-def preprocess_image(image_bytes: bytes) -> tuple[np.ndarray, np.ndarray]:
+def validate_model_contract(model: tf.keras.Model, metadata: ModelMetadata) -> None:
+    expected_input = (None, metadata.input_size[0], metadata.input_size[1], 3)
+    if tuple(model.input_shape) != expected_input:
+        raise ValueError(
+            f"Model input shape {model.input_shape} does not match metadata {expected_input}."
+        )
+    if tuple(model.output_shape) != (None, 1):
+        raise ValueError("AuthentiScan requires a binary model with output shape (None, 1).")
+
+    base_model = model.get_layer(metadata.gradcam.base_model_layer)
+    base_model.get_layer(metadata.gradcam.last_conv_layer)
+    for layer_name in (
+        metadata.gradcam.pooling_layer,
+        metadata.gradcam.dropout_layer,
+        metadata.gradcam.output_layer,
+    ):
+        model.get_layer(layer_name)
+
+
+def preprocess_image(
+    image_bytes: bytes, image_size: tuple[int, int]
+) -> tuple[np.ndarray, np.ndarray]:
     """Return model input and the original RGB pixels for a Grad-CAM overlay."""
     try:
         with Image.open(BytesIO(image_bytes)) as image:
@@ -31,7 +53,7 @@ def preprocess_image(image_bytes: bytes) -> tuple[np.ndarray, np.ndarray]:
     except (UnidentifiedImageError, OSError) as error:
         raise ValueError("The uploaded file is not a valid image.") from error
 
-    resized = Image.fromarray(original_rgb).resize(IMAGE_SIZE)
+    resized = Image.fromarray(original_rgb).resize(image_size)
 
     # The saved EfficientNet model includes its own rescaling/normalization layers.
     model_input = np.expand_dims(np.asarray(resized, dtype=np.float32), axis=0)
