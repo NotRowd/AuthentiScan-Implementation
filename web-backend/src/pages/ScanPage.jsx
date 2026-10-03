@@ -1,27 +1,32 @@
 import React, { useRef, useState } from 'react';
-import {scorePresentation} from '../utils/analysisPresentation';
-import AnalysisExplanation from '../components/common/AnalysisExplanation';
 import { Link } from 'react-router-dom';
-import { 
-  UploadCloud, 
-  Sparkles, 
-  Layers, 
-  AlertCircle,
-  CheckCircle2
-} from 'lucide-react';
+import { UploadCloud, Sparkles, Layers, AlertCircle, CheckCircle2, Image as ImageIcon, ArrowRight, RefreshCw, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import Card from '../components/common/Card';
 import StatusBadge from '../components/common/StatusBadge';
 import ExportReportButton from '../components/common/ExportReportButton';
 import ScanCreditNotice from '../components/common/ScanCreditNotice';
 import ProtectedHeatmap from '../components/common/ProtectedHeatmap';
+import AnalysisExplanation from '../components/common/AnalysisExplanation';
+import { scorePresentation } from '../utils/analysisPresentation';
 import { uploadScanImage } from '../services/api';
+
+const fadeIn = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
 
 export default function ScanPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedScan, setUploadedScan] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const uploadBusy = useRef(false);
 
   const handleFileChange = (e) => {
@@ -31,6 +36,11 @@ export default function ScanPage() {
       setError('');
       setUploadedScan(null);
       e.target.value = '';
+
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
 
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size === 0) {
         setSelectedFile(null);
@@ -45,6 +55,17 @@ export default function ScanPage() {
       }
 
       setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const resetUpload = () => {
+    setSelectedFile(null);
+    setUploadedScan(null);
+    setError('');
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
     }
   };
 
@@ -72,148 +93,229 @@ export default function ScanPage() {
     }
   };
 
+  // Cleanup preview URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   return (
     <DashboardLayout>
-      <div className="space-y-8 max-w-5xl mx-auto">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Scan Image</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Upload an image for AI classification and a Grad-CAM heatmap.
-          </p>
-        </div>
+      <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="space-y-8 max-w-6xl mx-auto">
+        
+        {/* Header Section */}
+        <motion.div variants={fadeIn} className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold text-sky-500 uppercase tracking-[0.15em] mb-2">Analysis Workspace</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Scan Image</h1>
+            <p className="text-sm font-medium text-slate-500 mt-2">
+              Upload an image for AI classification and an explainable heatmap.
+            </p>
+          </div>
+        </motion.div>
 
         {/* Notice Info Pill */}
-        <div className="p-4 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-brand-400 shrink-0 mt-0.5" />
-          <div className="text-xs text-brand-200 leading-relaxed">
-            <span className="font-semibold text-white">What to expect:</span> Your image is saved to your account and sent for EfficientNet-B0 classification and a Grad-CAM heatmap when the AI service is available. Results are estimates, not proof.
+        <motion.div variants={fadeIn} className="p-5 rounded-2xl bg-sky-50/50 border border-sky-100 flex items-start gap-4">
+          <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4 text-sky-500" />
           </div>
-        </div>
+          <div className="text-sm text-slate-600 font-medium leading-relaxed pt-1.5">
+            <strong className="text-slate-900">What to expect:</strong> Your image is saved and analyzed using our EfficientNet-B0 model when available. Results are estimates, not absolute proof.
+          </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Upload Zone & Options */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card title="1. Choose your image" subtitle="JPEG, PNG, or WebP · Up to 10 MB">
-              <div className="mt-4 border-2 border-dashed border-slate-700 hover:border-brand-500/60 focus-within:border-brand-400 rounded-xl p-6 text-center transition-colors bg-slate-900/40 relative">
-                <input
-                  type="file"
-                  aria-label="Choose image for analysis"
-                  disabled={isUploading}
-                  accept="image/png, image/jpeg, image/webp"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-                <div className="flex flex-col items-center">
-                  <div className="p-4 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 mb-3">
-                    <UploadCloud className="w-8 h-8" />
-                  </div>
-                  {selectedFile ? (
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-white break-all">{selectedFile.name}</p>
-                      <p className="text-xs text-slate-400">
-                        {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                      </p>
-                      <span className="inline-block mt-2 text-xs text-brand-400 hover:underline cursor-pointer">
-                        {isUploading ? 'Please wait until this scan finishes' : 'Click to change image'}
-                      </span>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-sm font-semibold text-slate-200">
-                        <span className="text-brand-300">Browse for an image</span> to get started
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        JPEG, PNG, or WebP up to 10 MB. Scores are estimates, not proof.
-                      </p>
-                    </div>
-                  )}
+        <div className="grid lg:grid-cols-12 gap-8">
+          
+          {/* Main Upload Zone */}
+          <motion.div variants={fadeIn} className="lg:col-span-7 space-y-6">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-64 h-64 bg-gradient-to-tr from-sky-100/50 to-transparent rounded-full -ml-20 -mt-20 blur-2xl pointer-events-none"></div>
+              
+              <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center">
+                  <UploadCloud className="w-5 h-5 text-sky-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">1. Upload Image</h2>
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">JPEG, PNG, or WebP &bull; Up to 10 MB</p>
                 </div>
               </div>
-            </Card>
 
-            <Card title="2. Start your analysis" subtitle="Classification and a visual explanation">
-              <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="w-5 h-5 text-brand-300 shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-semibold">Included in your analysis</h3>
-                    <p className="text-sm text-slate-400 leading-relaxed mt-2">An authenticity classification, class scores, and a Grad-CAM heatmap when available. The result is saved to your history.</p>
+              {!selectedFile ? (
+                <div className="relative z-10 bg-slate-50 border-2 border-dashed border-slate-200 hover:border-sky-300 rounded-2xl p-10 text-center transition-all group focus-within:border-sky-400 focus-within:bg-white cursor-pointer">
+                  <input
+                    type="file"
+                    aria-label="Choose image for analysis"
+                    disabled={isUploading}
+                    accept="image/png, image/jpeg, image/webp"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20"
+                  />
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-white border border-slate-200 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:border-sky-200 group-hover:shadow-sm transition-all duration-300">
+                      <ImageIcon className="w-8 h-8 text-sky-400 group-hover:text-sky-500 transition-colors" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">Select an image to analyze</h3>
+                    <p className="text-sm font-medium text-slate-500">Drag and drop, or click to browse</p>
                   </div>
                 </div>
-                <p className="text-xs text-slate-400 mt-4 border-t border-slate-800 pt-3">Regular (Free) accounts get 5 scans per day, resetting at 12:00 AM Philippine time (Asia/Manila). Unused scans do not carry over. Completed scans use one credit on the day they were started; queued or processing scans reserve one. Failed scans do not count. Viewing history and exporting PDFs are free. Object detection is not currently available.</p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={handleUpload}
-                  disabled={isUploading || !selectedFile}
-                  className="w-full py-4 rounded-xl font-semibold bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-70 text-white shadow-xl shadow-brand-500/20 transition-all flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-5 h-5" />
-                  {isUploading ? 'Uploading and analysing…' : 'Upload Image for Analysis'}
-                </button>
-              </div>
+              ) : (
+                <div className="relative z-10 bg-slate-50 border border-slate-200 rounded-2xl p-6">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <div className="w-32 h-32 rounded-xl border border-slate-200 bg-white overflow-hidden shrink-0 shadow-sm relative group">
+                      {previewUrl ? (
+                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="w-10 h-10 text-slate-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                      )}
+                      {!isUploading && (
+                        <label className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white text-xs font-bold">
+                          Change
+                          <input type="file" accept="image/png, image/jpeg, image/webp" onChange={handleFileChange} className="hidden" />
+                        </label>
+                      )}
+                    </div>
+                    <div className="flex-1 text-center sm:text-left">
+                      <h3 className="font-bold text-slate-900 break-all text-lg mb-1">{selectedFile.name}</h3>
+                      <p className="text-sm font-medium text-slate-500 mb-4">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                      
+                      {isUploading ? (
+                        <div className="flex items-center justify-center sm:justify-start gap-2 text-sky-600 font-bold text-sm bg-sky-50 px-4 py-2 rounded-lg inline-flex">
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Processing Analysis...
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
+                          <button
+                            type="button"
+                            onClick={handleUpload}
+                            className="px-6 py-2.5 rounded-xl font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-md shadow-sky-500/20 hover:shadow-sky-500/40 transition-all flex items-center gap-2"
+                          >
+                            <Sparkles className="w-4 h-4" /> Analyze Now
+                          </button>
+                          <button
+                            type="button"
+                            onClick={resetUpload}
+                            className="px-6 py-2.5 rounded-xl font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-rose-500 hover:border-rose-200 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {error && (
-                <p role="alert" className="mt-4 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
-                  {error}
-                </p>
+                <div className="mt-4 p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 relative z-10">
+                  <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-bold text-rose-800">Unable to analyze image</h4>
+                    <p className="text-sm font-medium text-rose-600 mt-1">{error}</p>
+                  </div>
+                </div>
               )}
-            </Card>
-          </div>
+            </div>
+          </motion.div>
 
-          {/* Results Workspace Placeholder Sidebar */}
-          <div className="space-y-6">
-            <Card title="Your result" subtitle="EfficientNet-B0 prediction">
-              {uploadedScan?.scan_id && <Link to={`/scans/${uploadedScan.scan_id}`} className="button-secondary w-full mb-3">View full saved result →</Link>}
-              {uploadedScan?.scan_id && <ExportReportButton key={uploadedScan.scan_id} scanId={uploadedScan.scan_id} />}
-              <div aria-live="polite" className="mt-4 flex flex-col items-center justify-center p-4 rounded-xl border border-slate-800 bg-slate-900/40 text-center min-h-[300px]">
+          {/* Results Sidebar */}
+          <motion.div variants={fadeIn} className="lg:col-span-5 space-y-6">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col h-full">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-slate-500" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">2. Scan Result</h2>
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">Live AI Analysis</p>
+                </div>
+              </div>
+
+              <div className="flex-1 flex flex-col">
                 {uploadedScan?.analysis ? (
-                  <>
-                    <CheckCircle2 className="w-10 h-10 text-emerald-400 mb-3" />
-                    <p className="text-sm font-semibold text-emerald-300">Analysis completed</p>
-                    <div className="mt-3"><StatusBadge status={uploadedScan.analysis.verdict} /></div>
-                    <p className="text-xs text-slate-400 mt-3 max-w-xs">Class scores are estimates, not proof or overall model accuracy.</p>
-                    <AnalysisExplanation result={uploadedScan.analysis}/>
-                    <ProtectedHeatmap key={uploadedScan.scan_id} scanId={uploadedScan.scan_id} available={Boolean(uploadedScan.analysis.heatmap_url)} className="mt-4 max-h-44 rounded-lg border border-slate-700 object-contain" />
-                  </>
+                  <AnimatePresence mode="wait">
+                    <motion.div 
+                      key="completed"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex flex-col items-center text-center w-full"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+                        <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-4">Analysis Complete</h3>
+                      
+                      <div className="mb-6 w-full flex justify-center">
+                        <StatusBadge status={uploadedScan.analysis.verdict} />
+                      </div>
+
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 w-full text-left mb-6">
+                        <AnalysisExplanation result={uploadedScan.analysis} />
+                      </div>
+
+                      <div className="w-full mb-6">
+                        <p className="text-sm font-bold text-slate-700 mb-3 text-left">Grad-CAM Heatmap</p>
+                        <div className="rounded-xl border border-slate-200 bg-white overflow-hidden flex justify-center p-2">
+                          <ProtectedHeatmap key={uploadedScan.scan_id} scanId={uploadedScan.scan_id} available={Boolean(uploadedScan.analysis.heatmap_url)} className="max-h-48 object-contain" />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col w-full gap-3 mt-auto">
+                        <Link to={`/scans/${uploadedScan.scan_id}`} className="w-full py-3 rounded-xl font-bold bg-sky-50 text-sky-600 hover:bg-sky-100 transition-colors flex items-center justify-center gap-2">
+                          View Full Report <ArrowRight className="w-4 h-4" />
+                        </Link>
+                        <ExportReportButton key={uploadedScan.scan_id} scanId={uploadedScan.scan_id} />
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
                 ) : uploadedScan ? (
-                  <>
-                    <AlertCircle className="w-10 h-10 text-amber-400 mb-3" />
-                    <p className="text-sm font-semibold text-amber-300">{uploadedScan.status === 'failed' ? 'Analysis failed' : 'Image saved; analysis is pending'}</p>
-                    <p className="text-xs text-slate-400 mt-2 max-w-xs">Scan #{uploadedScan.scan_id} remains in your history. {uploadedScan.analysis_error?.message || 'Check the AI service and your saved scan status before submitting another image.'}</p>
-                  </>
-                ) : (
-                  <>
-                    <Layers className="w-10 h-10 text-slate-600 mb-3" />
-                    <p className="text-sm font-semibold text-slate-400">{isUploading ? 'Analysis request in progress' : 'No active analysis yet'}</p>
-                    <p className="text-xs text-slate-500 mt-1 max-w-xs">
-                      {isUploading ? 'Please wait. Avoid submitting the image again while this request is running.' : 'Choose an image and start analysis. Results will also be saved in History.'}
+                  <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50"
+                  >
+                    <AlertCircle className="w-12 h-12 text-amber-500 mb-4" />
+                    <h3 className="text-lg font-bold text-slate-900">{uploadedScan.status === 'failed' ? 'Analysis Failed' : 'Analysis Pending'}</h3>
+                    <p className="text-sm font-medium text-slate-500 mt-2">
+                      Scan #{uploadedScan.scan_id} is saved. {uploadedScan.analysis_error?.message || 'Check your scan history later if processing is delayed.'}
                     </p>
-                  </>
+                  </motion.div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 group">
+                    <Layers className={`w-12 h-12 mb-4 transition-colors ${isUploading ? 'text-sky-400 animate-pulse' : 'text-slate-300 group-hover:text-sky-300'}`} />
+                    <h3 className="text-lg font-bold text-slate-900">
+                      {isUploading ? 'Processing...' : 'Awaiting Analysis'}
+                    </h3>
+                    <p className="text-sm font-medium text-slate-500 mt-2 max-w-[250px]">
+                      {isUploading 
+                        ? 'Please wait while we securely transmit and process your image.' 
+                        : 'Upload an image and click Analyze to see your results here.'}
+                    </p>
+                  </div>
                 )}
               </div>
 
-              <ScanCreditNotice scan={uploadedScan} />
-              <div className="mt-4 pt-4 border-t border-slate-800 space-y-2 text-xs text-slate-400">
-                <div className="flex items-center justify-between py-1">
-                  <span>Classification Result:</span>
-                  <span className="font-mono text-slate-500 break-all">{uploadedScan?.analysis?.verdict || (uploadedScan ? uploadedScan.status : 'Awaiting upload')}</span>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <span>{uploadedScan?.analysis?scorePresentation(uploadedScan.analysis).label:'Class score'}:</span>
-                  <span className="font-mono text-slate-500">{uploadedScan?.analysis ? `${(scorePresentation(uploadedScan.analysis).value * 100).toFixed(2)}%` : 'Not available yet'}</span>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <span>Grad-CAM Status:</span>
-                  <span className="font-mono text-slate-500">{uploadedScan?.analysis?.heatmap_url ? 'Image supplied' : uploadedScan ? 'Not supplied' : 'Awaiting analysis'}</span>
+              {/* Stats Footer */}
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <ScanCreditNotice scan={uploadedScan} />
+                <div className="mt-4 space-y-2 text-xs font-medium text-slate-500">
+                  <div className="flex items-center justify-between py-1">
+                    <span>Result Status:</span>
+                    <span className="font-bold text-slate-700">{uploadedScan?.analysis?.verdict || (uploadedScan ? uploadedScan.status : 'Waiting')}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1">
+                    <span>{uploadedScan?.analysis ? scorePresentation(uploadedScan.analysis).label : 'Confidence Score'}:</span>
+                    <span className="font-bold text-slate-700">{uploadedScan?.analysis ? `${(scorePresentation(uploadedScan.analysis).value * 100).toFixed(2)}%` : '—'}</span>
+                  </div>
                 </div>
               </div>
-            </Card>
-          </div>
+
+            </div>
+          </motion.div>
         </div>
-      </div>
+
+      </motion.div>
     </DashboardLayout>
   );
 }

@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, FileText, CheckCircle2, AlertTriangle, Layers, Info, Image as ImageIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusBadge from '../components/common/StatusBadge';
 import ExportReportButton from '../components/common/ExportReportButton';
 import ScanCreditNotice from '../components/common/ScanCreditNotice';
 import ProtectedHeatmap from '../components/common/ProtectedHeatmap';
 import AnalysisExplanation from '../components/common/AnalysisExplanation';
-import {scorePresentation} from '../utils/analysisPresentation';
+import { scorePresentation } from '../utils/analysisPresentation';
 import { fetchScanDetails, fetchScanImage } from '../services/api';
 
 const percent = value => typeof value === 'number' && Number.isFinite(value) ? (value * 100).toFixed(2) + '%' : 'Not available';
 const date = value => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleString() : 'Not available';
+
+const fadeIn = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
 
 function MediaPreview({ src, title, unavailable }) {
   const [state, setState] = useState('loading');
@@ -20,20 +31,43 @@ function MediaPreview({ src, title, unavailable }) {
     const timeout = setTimeout(() => setState('failed'), 20000);
     return () => clearTimeout(timeout);
   }, [src, state]);
-  return <section className="glass-panel rounded-xl p-4 sm:p-5 min-w-0">
-    <h2 className="font-semibold mb-4">{title}</h2>
-    <div className="rounded-lg bg-slate-950 border border-slate-800 min-h-64 flex items-center justify-center relative overflow-hidden">
-      {!src || state === 'failed' ? <p role="status" className="text-sm text-slate-400 text-center p-6">{unavailable}</p> : <>
-        {state === 'loading' && <p role="status" className="absolute text-sm text-slate-400">Loading image…</p>}
-        <img src={src} alt={title} referrerPolicy="no-referrer" onLoad={() => setState('ready')} onError={() => setState('failed')} className={`w-full h-80 sm:h-96 object-contain ${state === 'loading' ? 'invisible' : ''}`} />
-      </>}
+  
+  return (
+    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 flex flex-col h-full">
+      <h2 className="font-bold text-lg text-slate-900 mb-4">{title}</h2>
+      <div className="rounded-2xl bg-slate-50 border border-slate-100 flex-1 min-h-[300px] flex flex-col items-center justify-center relative overflow-hidden group">
+        {!src || state === 'failed' ? (
+          <div className="p-8 text-center text-slate-500">
+            <ImageIcon className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+            <p className="text-sm font-medium max-w-[250px]">{unavailable}</p>
+          </div>
+        ) : (
+          <>
+            {state === 'loading' && (
+              <div className="absolute flex flex-col items-center justify-center text-slate-400">
+                <RefreshCw className="w-6 h-6 animate-spin mb-2" />
+                <p className="text-sm font-bold">Loading image...</p>
+              </div>
+            )}
+            <img 
+              src={src} 
+              alt={title} 
+              referrerPolicy="no-referrer" 
+              onLoad={() => setState('ready')} 
+              onError={() => setState('failed')} 
+              className={`w-full h-80 sm:h-96 object-contain p-2 ${state === 'loading' ? 'invisible' : 'group-hover:scale-105 transition-transform duration-500'}`} 
+            />
+          </>
+        )}
+      </div>
     </div>
-  </section>;
+  );
 }
 
 function OriginalImage({ scanId }) {
   const [src, setSrc] = useState('');
   const [failed, setFailed] = useState(false);
+  
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -46,11 +80,13 @@ function OriginalImage({ scanId }) {
     }).catch(() => { if (active) setFailed(true); }).finally(() => clearTimeout(timeout));
     return () => { active = false; clearTimeout(timeout); controller.abort(); if (objectUrl) URL.revokeObjectURL(objectUrl); };
   }, [scanId]);
-  return <MediaPreview src={src} title="Original image" unavailable={src || failed ? 'Original image unavailable. Your saved result is unaffected. Use Refresh result to try again.' : 'Loading original image…'} />;
+  
+  return <MediaPreview src={src} title="Original Image" unavailable={src || failed ? 'Original image unavailable. Use Refresh result to try again.' : 'Loading original image...'} />;
 }
 
 function SavedResult({ scanId, onRetry }) {
   const [state, setState] = useState({ loading: true, error: '', scan: null });
+  
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
@@ -62,29 +98,157 @@ function SavedResult({ scanId, onRetry }) {
     }).finally(() => clearTimeout(timeout));
     return () => { active = false; clearTimeout(timeout); controller.abort(); };
   }, [scanId]);
+  
   const scan = state.scan;
   const result = scan?.analysis;
-  return <div className="space-y-6">
-    <div className="flex flex-wrap justify-between items-start gap-4"><div className="min-w-0"><p className="eyebrow mb-2">Saved analysis</p><h1 className="section-heading">Scan details</h1><p className="text-sm text-slate-400 mt-2 break-all">{scan ? scan.original_file_name : 'Review an existing scan without using your scan allowance.'}</p></div><button type="button" disabled={state.loading} onClick={onRetry} className="button-secondary"><RefreshCw className="w-4 h-4" />Refresh result</button></div>
-    {state.loading ? <p role="status" className="glass-panel p-10 rounded-xl text-slate-400">Loading saved result…</p> : state.error ? <div role="alert" className="p-5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-200"><p>{state.error}</p><p className="text-sm mt-2">Check that you are signed in to the account that owns this scan.</p></div> : <>
-      <section className="glass-panel rounded-xl p-5 sm:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-5"><div><p className="text-xs text-slate-400 mb-3">Scan #{scan.scan_id} · {date(scan.created_at)}</p><StatusBadge status={result?.verdict || scan.status} /></div><ExportReportButton scanId={scan.scan_id} /></div>
-        {result ? <><div className="grid sm:grid-cols-3 gap-4 mt-6">{[[scorePresentation(result).label, scorePresentation(result).value], ['Authentic score', result.authentic_score], ['AI-generated score', result.ai_generated_score]].map(([label, value]) => <div key={label} className="rounded-xl border border-slate-800 bg-slate-950/40 p-4"><p className="text-xs text-slate-400">{label}</p><p className="text-2xl font-semibold mt-2">{percent(value)}</p></div>)}</div><p className="text-sm leading-relaxed text-slate-300 mt-5">Class scores are estimates, not calibrated probabilities or proof. {result.verdict==='uncertain'?'No class was selected.':'The selected class follows the model’s decision policy, which may use a threshold other than 50%.'}</p></> : <p className="text-sm text-slate-300 mt-5">{scan.status === 'failed' ? 'Analysis failed. This image is saved, but no prediction is available.' : 'This image is saved, but no prediction is available yet. Refresh to check its status; this does not start a new analysis.'}</p>}
-        <ScanCreditNotice scan={scan} />
-      </section>
-      <div className="grid xl:grid-cols-2 gap-5">
-        <OriginalImage scanId={scan.scan_id} />
-        <section className="glass-panel rounded-xl p-4 sm:p-5 min-w-0"><h2 className="font-semibold mb-4">Grad-CAM heatmap</h2><ProtectedHeatmap scanId={scan.scan_id} available={Boolean(result?.heatmap_url)} />{result&&<AnalysisExplanation result={result}/>}</section>
+
+  if (state.loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-20">
+        <RefreshCw className="w-10 h-10 text-sky-500 animate-spin mb-4" />
+        <p className="text-lg font-bold text-slate-700">Loading analysis results...</p>
       </div>
-      <section className="glass-panel rounded-xl p-5 sm:p-6"><h2 className="font-semibold mb-4">Analysis record</h2><dl className="grid sm:grid-cols-2 gap-5 text-sm">{[['Model version', result?.model_version || 'Not available'], ['Analyzed at', date(result?.analyzed_at)], ['File type', scan.mime_type || 'Not available'], ['File size', Number.isFinite(scan.file_size_bytes) ? (scan.file_size_bytes / 1024).toFixed(1) + ' KB' : 'Not available']].map(([label, value]) => <div key={label} className="min-w-0"><dt className="text-slate-400 text-xs mb-1">{label}</dt><dd className="break-all">{value}</dd></div>)}</dl></section>
-      {result?.policy_version&&<p className="text-xs text-slate-400 break-all">Policy: {result.policy_version} · Authentic decision threshold: {result.decision_threshold} · Uncertainty margin: {result.uncertainty_margin} · Preprocessing: {result.preprocessing_version}</p>}
-      <aside className="rounded-xl border border-brand-500/20 bg-brand-500/5 p-5 text-sm leading-relaxed text-slate-400"><h2 className="font-semibold text-slate-200 mb-2">How to read this result</h2>Predictions are estimates, not proof of authenticity or manipulation. A class score is not overall model accuracy. Grad-CAM explains a specified class, not proven edited areas. Object detection and manipulation segmentation are not included.</aside>
-    </>}
-  </div>;
+    );
+  }
+
+  if (state.error) {
+    return (
+      <div role="alert" className="p-6 rounded-2xl border border-rose-200 bg-rose-50 flex flex-col items-center text-center max-w-lg mx-auto mt-10">
+        <AlertTriangle className="w-12 h-12 text-rose-400 mb-4" />
+        <p className="font-bold text-rose-700 text-lg">{state.error}</p>
+        <p className="text-sm font-medium text-rose-500 mt-2">Check that you are signed in to the account that owns this scan.</p>
+        <button onClick={onRetry} className="mt-6 px-6 py-2 bg-white text-rose-600 font-bold rounded-xl border border-rose-200 hover:bg-rose-100 transition-colors">Try Again</button>
+      </div>
+    );
+  }
+
+  return (
+    <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="space-y-8">
+      
+      {/* Header Area */}
+      <motion.div variants={fadeIn} className="flex flex-col md:flex-row md:items-end justify-between gap-5 bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-sky-100/50 to-transparent rounded-full -mr-20 -mt-20 blur-2xl pointer-events-none"></div>
+        <div className="relative z-10 min-w-0">
+          <p className="text-xs font-bold text-sky-500 uppercase tracking-[0.15em] mb-2">Saved Analysis</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight break-all">{scan ? scan.original_file_name : 'Scan details'}</h1>
+          <p className="text-sm font-medium text-slate-500 mt-2">Scan #{scan.scan_id} &bull; Analyzed on {date(scan.created_at)}</p>
+        </div>
+        <div className="relative z-10 flex flex-wrap items-center gap-3 shrink-0">
+          <button type="button" onClick={onRetry} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-700 hover:border-sky-300 hover:text-sky-600 hover:bg-sky-50 transition-colors">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
+          <ExportReportButton scanId={scan.scan_id} />
+        </div>
+      </motion.div>
+
+      {/* Main Verdict & Scores */}
+      <motion.section variants={fadeIn} className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-slate-100 pb-8">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Overall Verdict</h2>
+            <StatusBadge status={result?.verdict || scan.status} />
+          </div>
+          <div className="max-w-md text-sm font-medium text-slate-500 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            {result?.verdict === 'uncertain' ? 'No clear class was selected by the AI.' : 'The selected class follows the model’s decision policy, which may use a threshold other than 50%.'}
+            {' '}Class scores are estimates, not absolute proof.
+          </div>
+        </div>
+
+        {result ? (
+          <div className="grid sm:grid-cols-3 gap-6">
+            {[[scorePresentation(result).label, scorePresentation(result).value], ['Authentic Score', result.authentic_score], ['AI-generated Score', result.ai_generated_score]].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 p-6 flex flex-col justify-center items-center text-center hover:shadow-md hover:border-sky-200 transition-all">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</p>
+                <p className="text-3xl font-extrabold text-slate-900 mt-2">{percent(value)}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center font-medium text-slate-500 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            {scan.status === 'failed' ? 'Analysis failed. This image is saved, but no prediction is available.' : 'This image is saved, but no prediction is available yet. Refresh to check its status.'}
+          </p>
+        )}
+        <div className="mt-6"><ScanCreditNotice scan={scan} /></div>
+      </motion.section>
+
+      {/* Image & Grad-CAM Visuals */}
+      <motion.div variants={fadeIn} className="grid lg:grid-cols-2 gap-8">
+        <OriginalImage scanId={scan.scan_id} />
+        
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 flex flex-col h-full">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="font-bold text-lg text-slate-900">Explainable AI / Heatmap</h2>
+            <div className="group relative cursor-help">
+              <Info className="w-4 h-4 text-sky-400" />
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-slate-800 text-white text-xs rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                Grad-CAM highlights the specific areas of the image that caused the AI to make its prediction.
+              </div>
+            </div>
+          </div>
+          
+          <div className="rounded-2xl bg-slate-50 border border-slate-100 flex-1 min-h-[300px] flex flex-col items-center justify-center overflow-hidden mb-4 p-2">
+             <ProtectedHeatmap scanId={scan.scan_id} available={Boolean(result?.heatmap_url)} className="w-full h-80 sm:h-96 object-contain hover:scale-105 transition-transform duration-500" />
+          </div>
+          
+          {result && (
+            <div className="bg-sky-50 border border-sky-100 p-4 rounded-xl">
+               <AnalysisExplanation result={result}/>
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Technical Record & Info */}
+      <motion.div variants={fadeIn} className="grid md:grid-cols-2 gap-8">
+        <section className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+          <h2 className="font-bold text-lg text-slate-900 mb-6 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-slate-400" /> Technical Record
+          </h2>
+          <dl className="grid sm:grid-cols-2 gap-6 text-sm">
+            {[['Model Version', result?.model_version || 'Not available'], ['Analyzed At', date(result?.analyzed_at)], ['File Format', scan.mime_type || 'Not available'], ['File Size', Number.isFinite(scan.file_size_bytes) ? (scan.file_size_bytes / 1024).toFixed(1) + ' KB' : 'Not available']].map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-slate-500 font-medium text-xs mb-1 uppercase tracking-wider">{label}</dt>
+                <dd className="font-bold text-slate-900">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          {result?.policy_version && (
+            <div className="mt-6 pt-4 border-t border-slate-100 text-xs font-medium text-slate-400 leading-relaxed">
+              Policy: {result.policy_version} &bull; Authentic threshold: {result.decision_threshold} &bull; Margin: {result.uncertainty_margin} &bull; Preprocessing: {result.preprocessing_version}
+            </div>
+          )}
+        </section>
+
+        <aside className="rounded-3xl border border-sky-200 bg-sky-50 p-6 shadow-sm flex flex-col justify-center">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-sky-600" />
+            </div>
+            <h2 className="font-bold text-sky-900">How to read this result</h2>
+          </div>
+          <p className="text-sm leading-relaxed text-sky-800/80 font-medium">
+            Predictions are estimates, not absolute proof of authenticity or manipulation. A class score is not overall model accuracy. The Grad-CAM heatmap explains what the AI focused on for a specific class, not proven edited areas. Object detection is not currently included.
+          </p>
+        </aside>
+      </motion.div>
+      
+    </motion.div>
+  );
 }
 
 export default function ScanDetailsPage() {
   const { scanId } = useParams();
   const [attempt, setAttempt] = useState(0);
-  return <DashboardLayout><Link to="/history" className="inline-flex items-center gap-2 text-sm text-brand-300 hover:text-white mb-6"><ArrowLeft className="w-4 h-4" />Back to history</Link><SavedResult key={scanId + ':' + attempt} scanId={scanId} onRetry={() => setAttempt(value => value + 1)} /></DashboardLayout>;
+  
+  return (
+    <DashboardLayout>
+      <div className="max-w-7xl mx-auto">
+        <Link to="/dashboard" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-sky-600 hover:bg-sky-50 px-3 py-1.5 rounded-lg transition-colors mb-6 -ml-3">
+          <ArrowLeft className="w-4 h-4" /> Back to dashboard
+        </Link>
+        <SavedResult key={scanId + ':' + attempt} scanId={scanId} onRetry={() => setAttempt(value => value + 1)} />
+      </div>
+    </DashboardLayout>
+  );
 }

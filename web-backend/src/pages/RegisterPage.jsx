@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, User, Mail, Lock, ArrowRight } from 'lucide-react';
+import { User, Mail, Lock, ArrowRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import MainLayout from '../components/layout/MainLayout';
 import { registerAccount, saveAuthSession } from '../services/api';
+import logo from '../assets/logo.png';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -48,76 +50,88 @@ export default function RegisterPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          <div className="glass-panel rounded-2xl p-8 shadow-2xl border border-slate-800 relative">
-            <div className="text-center mb-8">
-              <div className="inline-flex p-3 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-400 mb-3">
-                <ShieldCheck className="w-8 h-8" />
-              </div>
-              <h1 className="text-2xl font-bold text-white">Create Account</h1>
-              <p className="text-slate-400 text-sm mt-1">Register for AuthentiScan Capstone Platform</p>
+      <div className="min-h-[calc(100vh-10rem)] flex items-center justify-center px-4 py-12 relative overflow-hidden bg-slate-50">
+        
+        {/* Soft Background Gradients */}
+        <div aria-hidden="true" className="absolute top-0 left-0 -ml-20 -mt-20 w-[40rem] h-[40rem] rounded-full bg-sky-200/30 blur-3xl pointer-events-none" />
+        <div aria-hidden="true" className="absolute bottom-0 right-0 -mr-20 -mb-20 w-[30rem] h-[30rem] rounded-full bg-blue-100/30 blur-3xl pointer-events-none" />
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-full max-w-md relative z-10"
+        >
+          {/* Card Wrapper */}
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 sm:p-10 shadow-2xl shadow-sky-100/50 border border-slate-200/80">
+            {/* Header branding */}
+            <div className="text-center mb-10">
+              <Link to="/" className="inline-block mb-6">
+                <img src={logo} alt="AuthentiScan Logo" className="w-14 h-14 mx-auto object-contain drop-shadow-md hover:scale-105 transition-transform duration-300" />
+              </Link>
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Create Account</h1>
+              <p className="text-slate-500 font-medium text-sm mt-2">Register for AuthentiScan Capstone Platform</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     First Name
                   </label>
-                  <div className="relative">
-                    <User className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <div className="relative group">
+                    <User className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-sky-500 transition-colors" />
                     <input
                       type="text"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       placeholder="Alex"
                       required
-                      className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition-all shadow-sm"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                     Last Name
                   </label>
-                  <div className="relative">
-                    <User className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <div className="relative group">
+                    <User className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-sky-500 transition-colors" />
                     <input
                       type="text"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       placeholder="Johnson"
                       required
-                      className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition-all shadow-sm"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   University / Academic Email
                 </label>
-                <div className="relative">
-                  <Mail className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <div className="relative group">
+                  <Mail className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-sky-500 transition-colors" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="alex@college.edu"
                     required
-                    className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition-all shadow-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Create Password
                 </label>
-                <div className="relative">
-                  <Lock className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <div className="relative group">
+                  <Lock className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 group-focus-within:text-sky-500 transition-colors" />
                   <input
                     type="password"
                     value={password}
@@ -125,48 +139,60 @@ export default function RegisterPage() {
                     placeholder="At least 8 characters"
                     minLength="8"
                     required
-                    className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 focus:bg-white transition-all shadow-sm"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <input
-                  type="checkbox"
-                  required
-                  className="rounded border-slate-700 bg-slate-900 text-brand-600 focus:ring-brand-500"
-                />
-                <span>
+              <div className="flex items-start gap-3 pt-1 group">
+                <div className="relative flex items-center justify-center shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    required
+                    className="peer appearance-none w-5 h-5 rounded-md border-2 border-slate-300 bg-white checked:bg-sky-500 checked:border-sky-500 transition-colors cursor-pointer focus:ring-4 focus:ring-sky-500/20 outline-none"
+                  />
+                  <svg className="absolute w-3 h-3 text-white pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="text-sm font-medium text-slate-600 group-hover:text-slate-900 transition-colors cursor-pointer select-none">
                   I accept the academic research terms & privacy guidelines.
                 </span>
               </div>
 
               {error && (
-                <p role="alert" className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
-                  {error}
-                </p>
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }} 
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="rounded-xl border border-rose-200 bg-rose-50 p-4"
+                  role="alert"
+                >
+                  <p className="text-sm font-medium text-rose-600 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                    {error}
+                  </p>
+                </motion.div>
               )}
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 rounded-xl font-semibold bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 disabled:cursor-not-allowed disabled:opacity-70 text-white shadow-lg shadow-brand-500/20 transition-all duration-200 flex items-center justify-center gap-2 text-sm"
+                className="w-full mt-2 py-4 rounded-xl font-bold bg-sky-500 hover:bg-sky-600 disabled:bg-slate-300 disabled:cursor-not-allowed disabled:text-slate-500 text-white shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 text-base"
               >
                 {isSubmitting ? 'Creating account...' : 'Register'}
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-5 h-5" />
               </button>
             </form>
 
-            <div className="mt-6 pt-6 border-t border-slate-800 text-center text-xs text-slate-400">
+            <div className="mt-8 pt-8 border-t border-slate-100 text-center text-sm font-medium text-slate-500">
               Already have an account?{' '}
-              <Link to="/login" className="text-brand-400 font-semibold hover:underline">
+              <Link to="/login" className="text-sky-600 font-bold hover:text-sky-700 hover:underline underline-offset-4 transition-colors">
                 Sign In
               </Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </MainLayout>
   );
 }
-

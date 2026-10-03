@@ -17,6 +17,7 @@
     "express": "4.22.3",
     "firebase": "12.19.0",
     "firebase-admin": "14.4.0",
+    "framer-motion": "^14.0.0",
     "helmet": "8.0.0",
     "lucide-react": "1.33.0",
     "multer": "2.4.0",

@@ -33,6 +33,7 @@ models/
 *.sqlite
 *.sqlite3
 .claude/
+jdk-21/
 
 logs
 *.log
