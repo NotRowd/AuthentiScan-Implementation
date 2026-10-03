@@ -1,0 +1,111 @@
+import React from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  Scan, 
+  History, 
+  User, 
+  CreditCard, 
+  LogOut,
+  Sparkles
+} from 'lucide-react';
+import { getStoredUser, clearAuthSession } from '../../services/api';
+
+export default function Sidebar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const user = getStoredUser();
+
+  const handleLogout = () => {
+    clearAuthSession();
+    navigate('/login');
+  };
+
+  const userInitials = user?.first_name && user?.last_name
+    ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+    : 'US';
+
+  const userFullName = user?.first_name && user?.last_name
+    ? `${user.first_name} ${user.last_name}`
+    : 'User Account';
+
+  const planName = user?.plan?.name || 'Free';
+
+  const navItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Scan Image', path: '/scan', icon: Scan },
+    { name: 'Scan History', path: '/history', icon: History },
+    { name: 'Profile & Settings', path: '/profile', icon: User },
+    { name: 'Subscription', path: '/subscription', icon: CreditCard },
+  ];
+
+  return (
+    <aside aria-label="Workspace navigation" className="w-60 shrink-0 glass-panel border-r border-slate-800 flex-col justify-between hidden lg:flex min-h-[calc(100vh-4rem)]">
+      <div className="p-4 space-y-6">
+        {/* Navigation Menu */}
+        <div>
+          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2">
+            Main Navigation
+          </div>
+          <nav className="space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path || (item.path === '/history' && location.pathname.startsWith('/scans/'));
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30 shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-brand-400' : 'text-slate-500'}`} />
+                  {item.name}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* AI Capstone Feature Info Box */}
+        <div className="p-3.5 rounded-xl bg-gradient-to-br from-slate-900 to-indigo-950/50 border border-indigo-500/20">
+          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-300 mb-1">
+            <Sparkles className="w-4 h-4 text-indigo-400" />
+            Read results thoughtfully
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            AI scores are estimates, not proof. Open a saved scan to review its explanation, heatmap, and PDF report.
+          </p>
+        </div>
+      </div>
+
+      {/* Bottom Profile Quick View */}
+      <div className="p-4 border-t border-slate-800/80">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-9 h-9 rounded-full bg-brand-600/30 border border-brand-500/40 flex items-center justify-center font-bold text-brand-300 text-xs shrink-0">
+              {userInitials}
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="text-xs font-medium text-white leading-snug truncate">{userFullName}</span>
+              <span className="text-[10px] text-slate-400 truncate">{planName} Plan</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Logout"
+            aria-label="Log out"
+            className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg transition-colors shrink-0"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+

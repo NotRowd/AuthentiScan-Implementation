@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.cache/
+.runtime/
+.emulator-data/
+.emulator-snapshots/
+firebase-export-*/
+.test-results/
+.secrets/
+.local-media/
+*firebase-adminsdk*.json
+*-debug.log
+*.log
+.env*
+!.env.example

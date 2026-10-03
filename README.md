@@ -1,3 +1,30 @@
+# AuthentiScan — team handoff
+
+**Start with [TEAM-SETUP.md](TEAM-SETUP.md).** This branch contains the current
+source snapshot for shared web/mobile development, not a cloud deployment.
+
+| Folder | Role |
+| --- | --- |
+| `web-backend/` | Current React website + Express/Firebase backend; start here for web work |
+| `mobile/` | Current Expo app; offline mode or the legacy API, not yet migrated to Firebase |
+| `ai-service/` | Current Python classification and Grad-CAM service + training source |
+| `legacy-backend/` | MySQL/JWT API still used by mobile |
+| `legacy-web/` | Latest pre-Firebase website, retained for reference |
+
+Root `src/`, `public/`, and root npm configuration below are the original
+repository scaffold preserved from `main`. **They are not the current website.**
+Run web commands inside `web-backend/`.
+
+No private credentials, user accounts/images, database dumps, model weights or
+training datasets are included. Ask Kent privately for approved model access;
+use emulators for web development without cloud credentials. Do not enable billing.
+Loyd's classifier-training handoff is separate and AI work remains paused.
+
+Create feature branches from `team-handoff-2026-10-03` and open pull requests
+back to that branch until the team reviews and merges it into `main`.
+
+## Original scaffold notes (historical)
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.

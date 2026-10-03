@@ -1,0 +1,42 @@
+{
+  "name": "authentiscan-firebase-local",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/start.mjs",
+    "start:cloud": "node scripts/start-cloud.mjs",
+    "test": "node scripts/test.mjs",
+    "test:unit": "node --test tests/guard.test.mjs tests/cloud-mode.test.mjs tests/cloudinary-media.test.mjs tests/ai-contract.test.mjs",
+    "build": "vite build",
+    "check": "node --check server/app.mjs && node --check server/allowance.mjs && node --check server/web-routes.mjs && node --check server/ai.mjs && node --check scripts/snapshots.mjs && node --check scripts/serve.mjs && node --check web/main.js"
+  },
+  "dependencies": {
+    "@fontsource/noto-sans": "5.3.0",
+    "cloudinary": "2.11.0",
+    "express": "4.22.3",
+    "firebase": "12.19.0",
+    "firebase-admin": "14.4.0",
+    "helmet": "8.0.0",
+    "lucide-react": "1.33.0",
+    "multer": "2.4.0",
+    "pdfkit": "0.20.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router-dom": "7.18.2",
+    "sharp": "0.35.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "6.0.4",
+    "autoprefixer": "^10.4.21",
+    "firebase-tools": "15.30.2",
+    "oxlint": "^1.75.0",
+    "playwright": "1.63.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "3.4.19",
+    "vite": "8.2.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

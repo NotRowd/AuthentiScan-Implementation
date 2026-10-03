@@ -1,0 +1,13 @@
+{
+  "model_version": "authentiscan-efficientnet-b0-v3-pilot",
+  "positive_class": "authentic",
+  "threshold": 0.51,
+  "uncertainty_margin": 0.05,
+  "gradcam": {
+    "base_model_layer": "efficientnetb0",
+    "last_conv_layer": "top_conv",
+    "pooling_layer": "global_average_pooling2d",
+    "dropout_layer": "dropout",
+    "output_layer": "dense"
+  }
+}

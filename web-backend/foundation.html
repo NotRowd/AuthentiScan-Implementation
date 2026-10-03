@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AuthentiScan · Firebase local test</title></head>
+<body><header><strong>AuthentiScan</strong><span>Firebase migration · stage 1</span></header>
+<main>
+  <aside class="notice">LOCAL TEST ONLY — no cloud connection or billing. Use fictional accounts and non-sensitive images. Emulators are not production-secure.</aside>
+  <h1>Test the Firebase foundation.</h1><p class="intro">Sign in, save a private profile, and verify image storage. Your existing AuthentiScan application remains unchanged.</p>
+  <p id="health" role="status">Checking local services…</p>
+  <div id="message" role="status" aria-live="polite"></div>
+  <section id="auth-panel" hidden><h2 id="auth-title">Sign in to a local test account</h2>
+    <form id="auth-form"><label>Email<input id="email" type="email" autocomplete="username" maxlength="254" required></label>
+    <label>Password<input id="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label>
+    <p class="muted">Use a new test account. MySQL and cloud Firebase accounts are not copied here.</p>
+    <button id="sign-in" type="submit">Sign in</button><button id="register" type="button" class="secondary">Create test account</button></form>
+  </section>
+  <section id="profile-panel" hidden><h2>Complete your test profile</h2><form id="profile-form">
+    <label>First name<input id="first-name" maxlength="100" autocomplete="given-name" required></label><label>Last name<input id="last-name" maxlength="100" autocomplete="family-name" required></label>
+    <button type="submit">Save profile</button></form><button class="secondary logout">Sign out</button></section>
+  <section id="account-panel" hidden><div class="row"><h2 id="greeting"></h2><button class="secondary logout">Sign out</button></div>
+    <p id="account-email"></p><div class="quota"><strong id="remaining"></strong><span>Free daily allowance · resets at midnight Philippine time</span></div><p id="reset" class="muted"></p>
+    <hr><h3>Image storage test</h3><p>This saves an image in the local Storage emulator. It does <strong>not</strong> classify the image, produce a heatmap, or consume scan credits.</p>
+    <form id="upload-form"><label>JPEG, PNG, or WebP · up to 10 MB<input id="image" type="file" accept="image/jpeg,image/png,image/webp" required></label><button type="submit">Test image storage</button></form>
+    <div class="row"><h3>Your local test images</h3><button id="refresh" class="secondary">Refresh</button></div><ul id="files"></ul>
+  </section>
+  <section class="next"><h2>What comes next?</h2><p>This is a migration test bench, not the finished website. AI inference, Grad-CAM, saved scan results, and PDF export will be connected after the Firebase foundation is verified. Pro subscriptions and mobile changes are not included.</p></section>
+</main><script type="module" src="/web/main.js"></script></body></html>
+

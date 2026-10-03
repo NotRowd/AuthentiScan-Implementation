@@ -1,0 +1,11 @@
+import type { User } from '../../types';
+import type { RegisterRequest } from '../api/contracts';
+import { OFFLINE_MODE } from '../api/config';
+import offlineAuthService from './offlineAuthService';
+import { backendAuthService } from './backendAuthService';
+export type AuthCredentials = { email: string; password: string };
+export type RegisterPayload = RegisterRequest;
+export type ProfileUpdatePayload = { name: string };
+export type AuthServiceResult<T> = { success: true; data: T } | { success: false; error: string };
+const authService = OFFLINE_MODE ? offlineAuthService : backendAuthService;
+export default authService;

@@ -1,0 +1,8 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // All data access goes through the API, which verifies Firebase ID tokens
+    // and scopes every record to its owner. Never trust client-written credits.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

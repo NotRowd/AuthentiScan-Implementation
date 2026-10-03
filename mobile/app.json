@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "AuthentiScan",
+    "slug": "authentiscan",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#05070D",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.authentiscan.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#05070D",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.authentiscan.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "authentiscan",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "AuthentiScan needs access to your photo library to analyze images for AI manipulation.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-secure-store",
+      "expo-sharing"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

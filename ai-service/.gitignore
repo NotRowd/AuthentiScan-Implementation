@@ -1,0 +1,8 @@
+# Training data, exported models, and local reports never belong in Git.
+datasets/
+models/*.keras
+reports/
+service/generated-heatmaps/
+__pycache__/
+*.py[cod]
+.venv/
