@@ -84,32 +84,29 @@ export default function HowItWorksScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#05070D', '#0B0F1A', '#05070D']}
+        colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']}
         style={StyleSheet.absoluteFill}
       />
       <ScanGrid animated={false} />
 
       <SafeAreaView style={styles.safeArea}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
-          </TouchableOpacity>
-          <CyberText variant="label" color={Colors.cyan}>
-            HOW IT WORKS
-          </CyberText>
-          <View style={{ width: 40 }} />
-        </View>
-
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={styles.backButton}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
+            </TouchableOpacity>
+            <CyberText variant="label" color={Colors.cyan}>HOW IT WORKS</CyberText>
+            <View style={{ width: 40 }} />
+          </View>
+
           {/* Intro */}
           <View style={styles.intro}>
             <CyberText variant="h3" align="center">

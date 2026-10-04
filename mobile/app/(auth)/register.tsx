@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,13 +11,11 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassCard from '../../components/ui/GlassCard';
 import CyberButton from '../../components/ui/CyberButton';
 import CyberText from '../../components/ui/CyberText';
-import ScanGrid from '../../components/ui/ScanGrid';
 import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import Typography from '../../constants/Typography';
@@ -73,6 +73,11 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const [focused, setFocused] = useState<string | null>(null);
+  const pageOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(pageOpacity, { toValue: 1, duration: 320, useNativeDriver: true }).start();
+  }, [pageOpacity]);
 
   const passwordStrength = getPasswordStrength(password);
   const strengthConfig = STRENGTH_CONFIG[passwordStrength];
@@ -124,13 +129,7 @@ export default function RegisterScreen() {
   ];
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#05070D', '#0B0F1A', '#05070D']}
-        style={StyleSheet.absoluteFill}
-      />
-      <ScanGrid animated={false} />
-
+    <Animated.View style={[styles.container, { opacity: pageOpacity }]}>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           style={styles.keyboardView}
@@ -160,21 +159,7 @@ export default function RegisterScreen() {
                   passwordStrength === 'very-strong' && styles.shieldIconActive,
                 ]}
               >
-                <Ionicons
-                  name={
-                    passwordStrength === 'very-strong' || passwordStrength === 'strong'
-                      ? 'shield-checkmark'
-                      : 'shield-outline'
-                  }
-                  size={36}
-                  color={
-                    passwordStrength === 'very-strong'
-                      ? Colors.authentic
-                      : passwordStrength === 'strong'
-                        ? Colors.cyan
-                        : Colors.textSecondary
-                  }
-                />
+                <Image source={require('../../assets/AuthentiScan-Logo.png')} style={styles.brandLogo} accessibilityLabel="AuthentiScan logo" />
               </View>
             </View>
 
@@ -427,7 +412,7 @@ export default function RegisterScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -470,6 +455,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  brandLogo: { width: 72, height: 72, borderRadius: 18 },
   shieldIconActive: {
     backgroundColor: Colors.authenticDim,
     borderColor: Colors.authentic,
@@ -505,7 +491,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: '#FBFDFF',
     borderRadius: Spacing.inputRadius,
     borderWidth: 1,
     borderColor: Colors.border,

@@ -94,7 +94,7 @@ const CyberButton: React.FC<CyberButtonProps> = ({
         {loading ? (
           <ActivityIndicator
             size="small"
-            color={variant === 'primary' ? Colors.bgPrimary : Colors.cyan}
+            color={variant === 'primary' ? Colors.textInverse : Colors.cyan}
           />
         ) : (
           <>
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   label_md: { fontSize: Typography.size.sm },
   label_lg: { fontSize: Typography.size.base },
 
-  label_primary: { color: Colors.bgPrimary },
+  label_primary: { color: Colors.textInverse },
   label_secondary: { color: Colors.cyan },
   label_danger: { color: Colors.fake },
   label_ghost: { color: Colors.textSecondary },

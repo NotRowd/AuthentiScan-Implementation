@@ -46,11 +46,11 @@ export default function PaymentMethodScreen() {
   const selection = state === 'selecting';
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#05070D', '#0B0F1A', '#05070D']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']} style={StyleSheet.absoluteFill} />
       <ScanGrid animated={false} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}><TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back"><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity><CyberText variant="label" color={Colors.cyan}>PAYMENT METHOD</CyberText><View style={styles.headerSpacer} /></View>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}><TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back"><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity><CyberText variant="label" color={Colors.cyan}>PAYMENT METHOD</CyberText><View style={styles.headerSpacer} /></View>
           <GlassCard variant="strong" style={styles.priceCard} active><View><CyberText variant="label" color={Colors.cyan}>AUTHENTISCAN PREMIUM</CyberText><CyberText variant="bodySmall">Monthly subscription</CyberText></View><View><CyberText variant="h2" color={Colors.cyan}>PHP 249</CyberText><CyberText variant="caption">/ MONTH</CyberText></View></GlassCard>
           {state === 'processing' ? <GlassCard variant="strong" style={styles.centerCard} active accessibilityLiveRegion="polite"><ActivityIndicator size="large" color={Colors.cyan} /><CyberText variant="h4" align="center">Processing payment</CyberText><CyberText variant="bodySmall" align="center">Securely handing off to your selected payment method. Payment details are never stored by AuthentiScan.</CyberText><CyberButton label="Cancel" onPress={() => { setState('selecting'); setError(null); }} variant="ghost" size="sm" /></GlassCard>
           : state === 'success' ? <GlassCard variant="strong" style={styles.successCard} active accessibilityLiveRegion="polite"><Ionicons name="shield-checkmark" size={44} color={Colors.authentic} /><CyberText variant="h4" align="center">Payment successful</CyberText><CyberText variant="bodySmall" align="center">Your Premium subscription is active. This state is shown only after provider confirmation.</CyberText><CyberButton label="Go to dashboard" onPress={() => router.replace('/(tabs)/dashboard')} style={styles.fullButton} /></GlassCard>

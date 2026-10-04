@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
+  Animated,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,13 +11,11 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassCard from '../../components/ui/GlassCard';
 import CyberButton from '../../components/ui/CyberButton';
 import CyberText from '../../components/ui/CyberText';
-import ScanGrid from '../../components/ui/ScanGrid';
 import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import Typography from '../../constants/Typography';
@@ -41,6 +40,11 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const pageOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(pageOpacity, { toValue: 1, duration: 320, useNativeDriver: true }).start();
+  }, [pageOpacity]);
 
   const handleLogin = async () => {
     setError(null);
@@ -71,13 +75,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#05070D', '#0B0F1A', '#05070D']}
-        style={StyleSheet.absoluteFill}
-      />
-      <ScanGrid animated={false} />
-
+    <Animated.View style={[styles.container, { opacity: pageOpacity }]}>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           style={styles.keyboardView}
@@ -102,7 +100,7 @@ export default function LoginScreen() {
             {/* Lock icon */}
             <View style={styles.iconContainer}>
               <View style={styles.lockIconBg}>
-                <Ionicons name="lock-closed" size={36} color={Colors.cyan} />
+                <Image source={require('../../assets/AuthentiScan-Logo.png')} style={styles.brandLogo} accessibilityLabel="AuthentiScan logo" />
               </View>
             </View>
 
@@ -266,7 +264,7 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -303,12 +301,18 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 24,
-    backgroundColor: Colors.cyanDim,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: Colors.glassBorderCyan,
+    borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#18476B',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
+  brandLogo: { width: 72, height: 72, borderRadius: 18 },
   titleContainer: {
     alignItems: 'center',
     gap: 8,
@@ -340,7 +344,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: '#FBFDFF',
     borderRadius: Spacing.inputRadius,
     borderWidth: 1,
     borderColor: Colors.border,

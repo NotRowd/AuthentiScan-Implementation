@@ -15,7 +15,7 @@ import Typography from '../../constants/Typography';
  * - History
  * - Settings
  *
- * Uses a custom dark glassmorphism tab bar.
+ * Uses a custom light tab bar with a prominent scan action.
  */
 export default function TabsLayout() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(5,7,13,0.92)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
   },
   tabBarLabel: {
     fontSize: Typography.size.xs,

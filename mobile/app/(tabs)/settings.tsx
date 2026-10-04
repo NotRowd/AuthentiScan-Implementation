@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,11 +12,29 @@ import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import { useAuth } from '../../hooks/useAuth';
 
-/**
- * Settings Screen
- *
- * User profile and app settings.
- */
+type SettingsItem = {
+  label: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  value?: string;
+  route?: '/edit-profile' | '/(public)/pricing';
+};
+
+const GROUPS: { title: string; items: SettingsItem[] }[] = [
+  { title: 'ACCOUNT', items: [
+    { label: 'Edit Profile', icon: 'person-outline', route: '/edit-profile' },
+    { label: 'Subscription Plan', icon: 'card-outline', route: '/(public)/pricing' },
+  ] },
+  { title: 'PREFERENCES', items: [
+    { label: 'Notifications', icon: 'notifications-outline', value: 'Coming soon' },
+    { label: 'Theme', icon: 'color-palette-outline', value: 'Light' },
+  ] },
+  { title: 'ABOUT', items: [
+    { label: 'Terms of Service', icon: 'document-text-outline' },
+    { label: 'Privacy Policy', icon: 'shield-outline' },
+    { label: 'App Version', icon: 'information-circle-outline', value: '1.0.0' },
+  ] },
+];
+
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
 
@@ -25,114 +43,60 @@ export default function SettingsScreen() {
     router.replace('/(public)/home');
   };
 
-  const SETTINGS_GROUPS = [
-    {
-      title: 'ACCOUNT',
-      items: [
-        { label: 'Edit Profile', icon: 'person-outline' as const },
-        { label: 'Subscription Plan', icon: 'card-outline' as const },
-      ],
-    },
-    {
-      title: 'PREFERENCES',
-      items: [
-        { label: 'Notifications', icon: 'notifications-outline' as const },
-        { label: 'Theme', icon: 'color-palette-outline' as const, value: 'Dark' },
-      ],
-    },
-    {
-      title: 'ABOUT',
-      items: [
-        { label: 'Terms of Service', icon: 'document-text-outline' as const },
-        { label: 'Privacy Policy', icon: 'shield-outline' as const },
-        { label: 'App Version', icon: 'information-circle-outline' as const, value: '1.0.0' },
-      ],
-    },
-  ];
-
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#05070D', '#0B0F1A', '#05070D']}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']} style={StyleSheet.absoluteFill} />
       <ScanGrid animated={false} />
-
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <CyberText variant="label" color={Colors.cyan}>
-            SETTINGS
-          </CyberText>
-        </View>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <View>
+              <CyberText variant="label" color={Colors.cyan}>YOUR ACCOUNT</CyberText>
+              <CyberText variant="h2" style={styles.title}>Profile & Settings</CyberText>
+            </View>
+            <View style={styles.headerIcon}><Ionicons name="settings-outline" size={21} color={Colors.cyan} /></View>
+          </View>
 
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Profile Card */}
-          <GlassCard style={styles.profileCard}>
+          <GlassCard variant="strong" style={styles.profileCard}>
             <View style={styles.avatar}>
-              <Ionicons name="person" size={32} color={Colors.cyan} />
+              {user?.avatarUri ? <Image source={{ uri: user.avatarUri }} style={styles.avatarImage} /> : <Ionicons name="person" size={28} color={Colors.cyan} />}
             </View>
             <View style={styles.profileInfo}>
-              <CyberText variant="h4">{user?.name || 'User'}</CyberText>
-              <CyberText variant="bodySmall" color={Colors.textSecondary}>
-                {user?.email || 'user@example.com'}
-              </CyberText>
+              <CyberText variant="h4" numberOfLines={1}>{user?.name || 'User'}</CyberText>
+              <CyberText variant="bodySmall" color={Colors.textSecondary} numberOfLines={1}>{user?.email || 'user@example.com'}</CyberText>
+              <View style={styles.planBadge}><View style={styles.planDot} /><CyberText variant="caption" color={Colors.cyanAlt}>{user?.plan === 'premium' ? 'PREMIUM PLAN' : 'FREE PLAN'}</CyberText></View>
             </View>
-            <View style={styles.planBadge}>
-              <CyberText variant="caption" color={Colors.bgPrimary}>
-                {user?.plan === 'premium' ? 'PREMIUM' : 'FREE'}
-              </CyberText>
-            </View>
+            <TouchableOpacity onPress={() => router.push('/edit-profile')} style={styles.editIcon} accessibilityRole="button" accessibilityLabel="Edit profile">
+              <Ionicons name="pencil-outline" size={18} color={Colors.cyan} />
+            </TouchableOpacity>
           </GlassCard>
 
-          {/* Settings Groups */}
-          {SETTINGS_GROUPS.map((group, idx) => (
-            <View key={idx} style={styles.group}>
-              <CyberText variant="label" style={styles.groupLabel}>
-                {group.title}
-              </CyberText>
+          {GROUPS.map((group) => (
+            <View key={group.title} style={styles.group}>
+              <CyberText variant="label" color={Colors.textSecondary} style={styles.groupLabel}>{group.title}</CyberText>
               <GlassCard style={styles.groupCard}>
-                {group.items.map((item, itemIdx) => (
-                  <React.Fragment key={item.label}>
-                    <TouchableOpacity
-                      style={styles.itemRow}
-                      onPress={item.label === 'Edit Profile' ? () => router.push('/edit-profile') : item.label === 'Subscription Plan' ? () => router.push('/(public)/pricing') : undefined}
-                      accessibilityRole="button"
-                      accessibilityLabel={item.label}
-                    >
-                      <View style={styles.itemLeft}>
-                        <Ionicons name={item.icon} size={20} color={Colors.textSecondary} />
-                        <CyberText variant="body">{item.label}</CyberText>
-                      </View>
-                      <View style={styles.itemRight}>
-                        {'value' in item && item.value && (
-                          <CyberText variant="bodySmall" color={Colors.textMuted} style={{ marginRight: 8 }}>
-                            {item.value}
-                          </CyberText>
-                        )}
-                        <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
-                      </View>
-                    </TouchableOpacity>
-                    {itemIdx < group.items.length - 1 && (
-                      <View style={styles.divider} />
-                    )}
-                  </React.Fragment>
-                ))}
+                {group.items.map((item, index) => {
+                  const content = <>
+                    <View style={styles.itemLeft}>
+                      <View style={[styles.itemIcon, !item.route && styles.itemIconMuted]}><Ionicons name={item.icon} size={18} color={item.route ? Colors.cyan : Colors.textSecondary} /></View>
+                      <CyberText variant="body">{item.label}</CyberText>
+                    </View>
+                    <View style={styles.itemRight}>
+                      {!!item.value && <CyberText variant="caption" color={Colors.textMuted}>{item.value}</CyberText>}
+                      {!!item.route && <Ionicons name="chevron-forward" size={17} color={Colors.textMuted} />}
+                    </View>
+                  </>;
+                  return <React.Fragment key={item.label}>
+                    {item.route ? <TouchableOpacity style={styles.itemRow} onPress={() => router.push(item.route!)} accessibilityRole="button" accessibilityLabel={item.label}>{content}</TouchableOpacity> : <View style={styles.itemRow}>{content}</View>}
+                    {index < group.items.length - 1 && <View style={styles.divider} />}
+                  </React.Fragment>;
+                })}
               </GlassCard>
             </View>
           ))}
 
-          <CyberButton
-            label="Log Out"
-            onPress={handleLogout}
-            variant="ghost"
-            style={styles.logoutButton}
-            textStyle={{ color: Colors.fake }}
-          />
-
-          <View style={{ height: Spacing.tabBarHeight + 32 }} />
+          <CyberButton label="Log Out" onPress={handleLogout} variant="ghost" style={styles.logoutButton} textStyle={styles.logoutText} />
+          <View style={{ height: Spacing.tabBarHeight + 24 }} />
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -140,84 +104,28 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bgPrimary,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: 16,
-  },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    paddingVertical: 20,
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.cyanDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.glassBorderCyan,
-  },
-  profileInfo: {
-    flex: 1,
-    gap: 4,
-  },
-  planBadge: {
-    backgroundColor: Colors.cyan,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  group: {
-    marginBottom: 24,
-  },
-  groupLabel: {
-    marginBottom: 8,
-    paddingLeft: 4,
-  },
-  groupCard: {
-    padding: 0,
-    overflow: 'hidden',
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  itemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  itemRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginLeft: 48,
-  },
-  logoutButton: {
-    marginTop: 8,
-    borderColor: Colors.fakeDim,
-    borderWidth: 1,
-  },
+  container: { flex: 1, backgroundColor: Colors.bgPrimary },
+  safeArea: { flex: 1 },
+  scrollContent: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, paddingBottom: 20 },
+  title: { marginTop: 5 },
+  headerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
+  profileCard: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, marginBottom: 26 },
+  avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: Colors.cyanDim, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.glassBorderCyan, overflow: 'hidden' },
+  avatarImage: { width: '100%', height: '100%' },
+  profileInfo: { flex: 1, gap: 4 },
+  planBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, backgroundColor: Colors.cyanDim },
+  planDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.cyan },
+  editIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: Colors.cyanDim, alignItems: 'center', justifyContent: 'center' },
+  group: { marginBottom: 22 },
+  groupLabel: { marginBottom: 9, paddingLeft: 4, letterSpacing: 1 },
+  groupCard: { padding: 0, overflow: 'hidden' },
+  itemRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14 },
+  itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  itemIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: Colors.cyanDim, alignItems: 'center', justifyContent: 'center' },
+  itemIconMuted: { backgroundColor: Colors.bgTertiary },
+  itemRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  divider: { height: 1, backgroundColor: Colors.border, marginLeft: 60 },
+  logoutButton: { marginTop: 2, borderColor: Colors.fakeDim, borderWidth: 1 },
+  logoutText: { color: Colors.fake },
 });

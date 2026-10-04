@@ -7,6 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#05070D",
+    "splash": {
+      "image": "./assets/AuthentiScan-Logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F6FAFD"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.authentiscan.app"

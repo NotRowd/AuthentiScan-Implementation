@@ -17,15 +17,15 @@ export default function CheckoutScreen() {
   const { isAuthenticated, user } = useAuth();
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#05070D', '#0B0F1A', '#05070D']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']} style={StyleSheet.absoluteFill} />
       <ScanGrid animated={false} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back"><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity>
-          <CyberText variant="label" color={Colors.cyan}>SECURE CHECKOUT</CyberText>
-          <View style={styles.headerSpacer} />
-        </View>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back"><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity>
+            <CyberText variant="label" color={Colors.cyan}>SECURE CHECKOUT</CyberText>
+            <View style={styles.headerSpacer} />
+          </View>
           <View style={styles.lockIcon}><Ionicons name="lock-closed" size={32} color={Colors.cyan} /></View>
           <View style={styles.heading}><CyberText variant="h3" align="center">AuthentiScan Premium</CyberText><CyberText variant="bodySmall" align="center">PHP 249 per month · Cancel through your payment provider.</CyberText></View>
 

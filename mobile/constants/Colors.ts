@@ -4,43 +4,43 @@
  */
 const Colors = {
   // --- Backgrounds ---
-  bgPrimary: '#05070D',
-  bgSecondary: '#0B0F1A',
-  bgTertiary: '#111827',
+  bgPrimary: '#F6FAFD',
+  bgSecondary: '#FFFFFF',
+  bgTertiary: '#EAF4FB',
 
   // --- Accent / Cyan ---
-  cyan: '#00E5FF',
-  cyanAlt: '#2DD4FF',
-  cyanDim: 'rgba(0, 229, 255, 0.15)',
-  cyanGlow: 'rgba(0, 229, 255, 0.25)',
+  cyan: '#2589D8',
+  cyanAlt: '#176FB7',
+  cyanDim: '#EAF6FF',
+  cyanGlow: 'rgba(37, 137, 216, 0.18)',
 
   // --- Verdict: Deepfake / Fake ---
-  fake: '#FF2E63',
-  fakeDim: 'rgba(255, 46, 99, 0.15)',
-  fakeGlow: 'rgba(255, 46, 99, 0.25)',
+  fake: '#C92A52',
+  fakeDim: 'rgba(201, 42, 82, 0.10)',
+  fakeGlow: 'rgba(201, 42, 82, 0.18)',
 
   // --- Verdict: Authentic / Success ---
-  authentic: '#3DFFB0',
-  authenticDim: 'rgba(61, 255, 176, 0.15)',
-  authenticGlow: 'rgba(61, 255, 176, 0.25)',
+  authentic: '#138A5E',
+  authenticDim: 'rgba(19, 138, 94, 0.10)',
+  authenticGlow: 'rgba(19, 138, 94, 0.18)',
 
   // --- Text ---
-  textPrimary: '#EAF2FF',
-  textSecondary: '#8CA0C2',
-  textMuted: '#4A5A7A',
-  textInverse: '#05070D',
+  textPrimary: '#12304A',
+  textSecondary: '#597188',
+  textMuted: '#8095A7',
+  textInverse: '#FFFFFF',
 
   // --- Glass surfaces ---
-  glassBg: 'rgba(255, 255, 255, 0.05)',
-  glassBgStrong: 'rgba(255, 255, 255, 0.09)',
-  glassBorder: 'rgba(255, 255, 255, 0.10)',
-  glassBorderCyan: 'rgba(0, 229, 255, 0.20)',
-  glassBorderStrong: 'rgba(255, 255, 255, 0.18)',
+  glassBg: '#FFFFFF',
+  glassBgStrong: '#FFFFFF',
+  glassBorder: '#D9EAF6',
+  glassBorderCyan: '#9DCEEF',
+  glassBorderStrong: '#C9DFEF',
 
   // --- Severity ---
   severityLow: '#3DFFB0',
-  severityMedium: '#F59E0B',
-  severityHigh: '#FF2E63',
+  severityMedium: '#A96000',
+  severityHigh: '#C92A52',
 
   // --- Utility ---
   white: '#FFFFFF',
@@ -48,12 +48,12 @@ const Colors = {
   transparent: 'transparent',
 
   // --- Grid / scan overlay ---
-  gridLine: 'rgba(0, 229, 255, 0.06)',
-  scanLine: 'rgba(0, 229, 255, 0.40)',
+  gridLine: 'rgba(37, 137, 216, 0.045)',
+  scanLine: 'rgba(37, 137, 216, 0.20)',
 
   // --- Border ---
-  border: 'rgba(255, 255, 255, 0.08)',
-  borderActive: '#00E5FF',
+  border: '#D9EAF6',
+  borderActive: '#2589D8',
 } as const;
 
 export type ColorKey = keyof typeof Colors;

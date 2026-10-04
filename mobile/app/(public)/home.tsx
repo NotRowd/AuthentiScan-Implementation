@@ -1,369 +1,309 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   Animated,
+  Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
   View,
-  Dimensions,
-  Easing,
+  useWindowDimensions,
 } from 'react-native';
 import { Redirect, router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import GlassCard from '../../components/ui/GlassCard';
 import CyberButton from '../../components/ui/CyberButton';
-import CyberText from '../../components/ui/CyberText';
-import ScanGrid from '../../components/ui/ScanGrid';
-import GlowEffect from '../../components/ui/GlowEffect';
-import Colors from '../../constants/Colors';
-import Spacing from '../../constants/Spacing';
 import { useAuth } from '../../hooks/useAuth';
 
-const { width } = Dimensions.get('window');
-
-// ─── Nav link data ────────────────────────────────────────────────────────────
+const BRAND = {
+  ink: '#12304A',
+  muted: '#597188',
+  blue: '#2589D8',
+  deepBlue: '#176FB7',
+  paleBlue: '#EAF6FF',
+  border: '#D9EAF6',
+  surface: '#FFFFFF',
+  canvas: '#F6FAFD',
+};
 
 const NAV_LINKS = [
   { label: 'About', icon: 'information-circle-outline' as const, route: '/(public)/about' },
-  { label: 'How It Works', icon: 'help-circle-outline' as const, route: '/(public)/how-it-works' },
+  { label: 'How it works', icon: 'help-circle-outline' as const, route: '/(public)/how-it-works' },
   { label: 'Pricing', icon: 'card-outline' as const, route: '/(public)/pricing' },
 ] as const;
 
-// ─── Feature highlights ───────────────────────────────────────────────────────
-
 const FEATURES = [
-  { icon: 'eye-outline' as const, label: 'AI Image Classification' },
-  { icon: 'analytics-outline' as const, label: 'Confidence Score' },
-  { icon: 'map-outline' as const, label: 'Grad-CAM Heatmap' },
-  { icon: 'document-text-outline' as const, label: 'Analysis Report' },
+  { icon: 'scan-outline' as const, title: 'Image review', body: 'Get an AI estimate for an image.' },
+  { icon: 'analytics-outline' as const, title: 'Clear results', body: 'See the result and its confidence score.' },
+  { icon: 'map-outline' as const, title: 'Visual context', body: 'Review the Grad-CAM explanation when available.' },
+  { icon: 'document-text-outline' as const, title: 'Shareable report', body: 'Keep a report of your completed analysis.' },
 ] as const;
 
-/**
- * Home Screen
- *
- * Application hub for unauthenticated users.
- * - AuthentiScan branding
- * - Main "Detect Image" CTA
- * - Navigation links: About, How It Works, Pricing, Login
- * - Feature highlight cards
- * - Glassmorphism + scan grid environment
- */
+type SectionBox = { y: number; height: number };
+
 export default function HomeScreen() {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return null;
-  // Old back-stack entries and home links must not show a signed-out screen
-  // to a user whose secure session is still valid.
   if (isAuthenticated) return <Redirect href="/(tabs)/dashboard" />;
   return <GuestHomeScreen />;
 }
 
 function GuestHomeScreen() {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
-  const heroScale = useRef(new Animated.Value(0.95)).current;
+  const { height: viewportHeight } = useWindowDimensions();
+  const scrollY = useRef(0);
+  const sectionBoxes = useRef<Record<number, SectionBox>>({});
+  const activeSections = useRef<Record<number, boolean>>({});
+  const revealValues = useRef([0, 0, 0].map(() => new Animated.Value(0))).current;
+  const introOpacity = useRef(new Animated.Value(0)).current;
+  const introOffset = useRef(new Animated.Value(12)).current;
 
-  useEffect(() => {
+  React.useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 60,
-        friction: 10,
-        useNativeDriver: true,
-      }),
-      Animated.spring(heroScale, {
-        toValue: 1,
-        tension: 50,
-        friction: 8,
-        useNativeDriver: true,
-      }),
+      Animated.timing(introOpacity, { toValue: 1, duration: 420, useNativeDriver: true }),
+      Animated.timing(introOffset, { toValue: 0, duration: 420, useNativeDriver: true }),
     ]).start();
-  }, []);
+  }, [introOpacity, introOffset]);
+
+  const refreshReveals = useCallback(() => {
+    Object.entries(sectionBoxes.current).forEach(([rawIndex, box]) => {
+      const index = Number(rawIndex);
+      const top = box.y - scrollY.current;
+      const isVisible = top < viewportHeight * 0.86 && top + box.height > viewportHeight * 0.12;
+      if (isVisible && !activeSections.current[index]) {
+        activeSections.current[index] = true;
+        revealValues[index].setValue(0);
+        Animated.timing(revealValues[index], {
+          toValue: 1,
+          duration: 360,
+          useNativeDriver: true,
+        }).start();
+      } else if (!isVisible && activeSections.current[index]) {
+        activeSections.current[index] = false;
+        revealValues[index].stopAnimation();
+        revealValues[index].setValue(0);
+      }
+    });
+  }, [revealValues, viewportHeight]);
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollY.current = event.nativeEvent.contentOffset.y;
+    refreshReveals();
+  }, [refreshReveals]);
+
+  const registerSection = (index: number) => (event: { nativeEvent: { layout: SectionBox } }) => {
+    sectionBoxes.current[index] = event.nativeEvent.layout;
+    refreshReveals();
+  };
+
+  const sectionStyle = (index: number) => ({
+    opacity: revealValues[index],
+    transform: [{ translateY: revealValues[index].interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
+  });
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={['#05070D', '#0B0F1A', '#080C14']}
-        locations={[0, 0.6, 1]}
-        style={StyleSheet.absoluteFill}
-      />
-      <ScanGrid animated />
-
-      <SafeAreaView style={styles.safeArea}>
-        <Animated.ScrollView
-          style={{ opacity: fadeAnim }}
+    <View style={styles.root}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
+          stickyHeaderIndices={[0]}
+          onScroll={handleScroll}
+          scrollEventThrottle={80}
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Header ──────────────────────────────────────── */}
-          <Animated.View
-            style={[
-              styles.header,
-              { transform: [{ translateY: slideAnim }] },
-            ]}
-          >
-            <View style={styles.logoRow}>
-              <Ionicons name="shield-checkmark" size={28} color={Colors.cyan} />
-              <CyberText variant="h4" color={Colors.textPrimary}>
-                AuthentiScan
-              </CyberText>
+          <View style={styles.header}>
+            <View style={styles.brand}>
+              <Image source={require('../../assets/AuthentiScan-Logo.png')} style={styles.logo} accessibilityLabel="AuthentiScan logo" />
+              <Text style={styles.brandName}>AuthentiScan</Text>
             </View>
-
             <TouchableOpacity
               onPress={() => router.push('/(auth)/login')}
-              style={styles.loginLink}
+              style={styles.loginButton}
               accessibilityRole="button"
               accessibilityLabel="Log in"
             >
-              <CyberText variant="label" color={Colors.cyan}>
-                Log In
-              </CyberText>
+              <Text style={styles.loginText}>Log in</Text>
+              <Ionicons name="arrow-forward" size={16} color={BRAND.deepBlue} />
             </TouchableOpacity>
-          </Animated.View>
+          </View>
 
-          {/* ── Hero section ─────────────────────────────────── */}
           <Animated.View
-            style={[
-              styles.heroSection,
-              { transform: [{ scale: heroScale }, { translateY: slideAnim }] },
-            ]}
+            style={[styles.hero, { opacity: introOpacity, transform: [{ translateY: introOffset }] }]}
           >
-            <GlowEffect color={Colors.cyan} intensity="medium" pulse>
-              <View style={styles.shieldIcon}>
-                <Ionicons name="shield-checkmark" size={64} color={Colors.cyan} />
-              </View>
-            </GlowEffect>
+            <View style={styles.eyebrow}>
+              <View style={styles.eyebrowDot} />
+              <Text style={styles.eyebrowText}>AI-ASSISTED IMAGE REVIEW</Text>
+            </View>
+            <Text style={styles.heroTitle}>A clearer look at{ '\n' }what’s in an image.</Text>
+            <Text style={styles.heroBody}>
+              Review whether an image may be authentic or AI-generated with explainable AI insights.
+            </Text>
 
-            <View style={styles.heroTextContainer}>
-              <CyberText variant="label" color={Colors.cyan} align="center">
-                AI-POWERED VERIFICATION
-              </CyberText>
-              <CyberText variant="h1" align="center" style={styles.heroTitle}>
-                Inspect Images.{'\n'}Review AI Estimates.
-              </CyberText>
-              <CyberText
-                variant="body"
-                align="center"
-                muted
-                style={styles.heroSubtitle}
-              >
-                Upload any image and let AuthentiScan's explainable AI reveal
-                whether it's authentic or AI-generated.
-              </CyberText>
+            <View style={styles.heroVisual}>
+              <View style={styles.visualOrbOuter}>
+                <View style={styles.visualOrbInner}>
+                  <Image source={require('../../assets/AuthentiScan-Logo.png')} style={styles.heroLogo} accessibilityLabel="AuthentiScan logo" />
+                </View>
+                <View style={[styles.signalDot, styles.signalDotTop]} />
+                <View style={[styles.signalDot, styles.signalDotRight]} />
+                <View style={[styles.signalDot, styles.signalDotBottom]} />
+              </View>
+              <View style={styles.scanPill}>
+                <Ionicons name="sparkles-outline" size={15} color={BRAND.deepBlue} />
+                <Text style={styles.scanPillText}>Image authenticity insights</Text>
+              </View>
             </View>
 
-            {/* Primary CTA */}
-            <View style={styles.ctaContainer}>
+            <View style={styles.ctas}>
               <CyberButton
-                label="Detect Image"
+                label="Start scanning"
                 onPress={() => router.push('/(auth)/login')}
                 variant="primary"
                 size="lg"
-                style={styles.ctaButton}
-                icon={<Ionicons name="scan-outline" size={20} color={Colors.bgPrimary} />}
+                style={styles.primaryButton}
+                textStyle={styles.primaryButtonText}
+                icon={<Ionicons name="scan-outline" size={20} color="#FFFFFF" />}
               />
-              <CyberButton
-                label="Create Account — It's Free"
+              <TouchableOpacity
                 onPress={() => router.push('/(auth)/register')}
-                variant="ghost"
-                size="md"
-              />
+                style={styles.createAccountButton}
+                accessibilityRole="button"
+                accessibilityLabel="Create a free account"
+              >
+                <Text style={styles.createAccountText}>Create a free account</Text>
+              </TouchableOpacity>
             </View>
+            <Text style={styles.heroNote}>Sign in to begin · Estimates are informational, not proof</Text>
           </Animated.View>
 
-          {/* ── Feature cards ────────────────────────────────── */}
-          <Animated.View
-            style={[
-              styles.featuresSection,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
-          >
-            <CyberText variant="label" align="center" style={styles.sectionLabel}>
-              WHAT AUTHENTISCAN DOES
-            </CyberText>
-            <View style={styles.featuresGrid}>
+          <Animated.View style={[styles.section, sectionStyle(0)]} onLayout={registerSection(0)}>
+            <View style={styles.sectionHeading}>
+              <Text style={styles.kicker}>WHAT YOU CAN REVIEW</Text>
+              <Text style={styles.sectionTitle}>Useful insights, made clear.</Text>
+            </View>
+            <View style={styles.featureGrid}>
               {FEATURES.map((feature) => (
-                <GlassCard key={feature.label} style={styles.featureCard}>
-                  <Ionicons
-                    name={feature.icon}
-                    size={24}
-                    color={Colors.cyan}
-                  />
-                  <CyberText
-                    variant="caption"
-                    align="center"
-                    color={Colors.textSecondary}
-                    style={styles.featureLabel}
-                  >
-                    {feature.label}
-                  </CyberText>
-                </GlassCard>
+                <View key={feature.title} style={styles.featureCard}>
+                  <View style={styles.featureIcon}>
+                    <Ionicons name={feature.icon} size={21} color={BRAND.deepBlue} />
+                  </View>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureBody}>{feature.body}</Text>
+                </View>
               ))}
             </View>
           </Animated.View>
 
-          {/* ── Navigation links ─────────────────────────────── */}
-          <Animated.View
-            style={[
-              styles.navSection,
-              { opacity: fadeAnim },
-            ]}
-          >
+          <Animated.View style={[styles.section, styles.learnSection, sectionStyle(1)]} onLayout={registerSection(1)}>
+            <View style={styles.learnCard}>
+              <View style={styles.learnIcon}>
+                <Ionicons name="shield-checkmark-outline" size={24} color={BRAND.deepBlue} />
+              </View>
+              <View style={styles.learnCopy}>
+                <Text style={styles.learnTitle}>Understand the result</Text>
+                <Text style={styles.learnBody}>See how image analysis works and what its estimates can—and can’t—tell you.</Text>
+              </View>
+              <Ionicons name="arrow-down" size={18} color={BRAND.muted} />
+            </View>
+          </Animated.View>
+
+          <Animated.View style={[styles.section, styles.linksSection, sectionStyle(2)]} onLayout={registerSection(2)}>
+            <Text style={styles.kicker}>EXPLORE AUTHENTISCAN</Text>
             {NAV_LINKS.map((link) => (
               <TouchableOpacity
                 key={link.label}
                 onPress={() => router.push(link.route as any)}
-                style={styles.navLink}
+                style={styles.navCard}
                 accessibilityRole="button"
                 accessibilityLabel={link.label}
               >
-                <GlassCard style={styles.navLinkCard}>
-                  <View style={styles.navLinkContent}>
-                    <Ionicons name={link.icon} size={20} color={Colors.cyan} />
-                    <CyberText variant="body" color={Colors.textPrimary}>
-                      {link.label}
-                    </CyberText>
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={Colors.textSecondary}
-                  />
-                </GlassCard>
+                <View style={styles.navIcon}>
+                  <Ionicons name={link.icon} size={20} color={BRAND.deepBlue} />
+                </View>
+                <Text style={styles.navLabel}>{link.label}</Text>
+                <Ionicons name="chevron-forward" size={18} color={BRAND.muted} />
               </TouchableOpacity>
             ))}
           </Animated.View>
 
-          {/* ── Bottom tagline ───────────────────────────────── */}
-          <View style={styles.bottomTagline}>
-            <CyberText variant="caption" align="center">
-              Model estimates are not proof · Offline preview
-            </CyberText>
+          <View style={styles.footer}>
+            <View style={styles.footerBrand}>
+              <Image source={require('../../assets/AuthentiScan-Logo.png')} style={styles.footerLogo} accessibilityLabel="" />
+              <Text style={styles.footerBrandName}>AuthentiScan</Text>
+            </View>
+            <Text style={styles.footerNote}>AI analysis is an estimate and should not be treated as definitive proof.</Text>
           </View>
-        </Animated.ScrollView>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bgPrimary,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: 48,
-  },
-  // ── Header ──────────────────────────────────────────
+  root: { flex: 1, backgroundColor: BRAND.canvas },
+  safeArea: { flex: 1 },
+  scrollContent: { paddingBottom: 32 },
   header: {
+    minHeight: 68,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 16,
-    paddingBottom: 8,
+    backgroundColor: BRAND.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: BRAND.border,
+    zIndex: 10,
   },
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  loginLink: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  // ── Hero ─────────────────────────────────────────────
-  heroSection: {
-    alignItems: 'center',
-    paddingTop: 32,
-    paddingBottom: 16,
-    gap: 24,
-  },
-  shieldIcon: {
-    width: 100,
-    height: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 50,
-    backgroundColor: Colors.cyanDim,
-    borderWidth: 1,
-    borderColor: Colors.glassBorderCyan,
-  },
-  heroTextContainer: {
-    alignItems: 'center',
-    gap: 12,
-  },
-  heroTitle: {
-    lineHeight: 40,
-  },
-  heroSubtitle: {
-    maxWidth: width * 0.75,
-    lineHeight: 22,
-  },
-  ctaContainer: {
-    alignItems: 'center',
-    gap: 12,
-    width: '100%',
-  },
-  ctaButton: {
-    width: '100%',
-  },
-  // ── Features ─────────────────────────────────────────
-  featuresSection: {
-    marginTop: 32,
-    gap: 16,
-  },
-  sectionLabel: {
-    marginBottom: 4,
-  },
-  featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  featureCard: {
-    width: (width - Spacing.screenPadding * 2 - 10) / 2,
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 16,
-  },
-  featureLabel: {
-    textAlign: 'center',
-  },
-  // ── Nav links ─────────────────────────────────────────
-  navSection: {
-    marginTop: 32,
-    gap: 10,
-  },
-  navLink: {},
-  navLinkCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-  },
-  navLinkContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  // ── Bottom ────────────────────────────────────────────
-  bottomTagline: {
-    marginTop: 40,
-    paddingBottom: 16,
-  },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  logo: { width: 36, height: 36, borderRadius: 10 },
+  brandName: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5, color: BRAND.ink },
+  loginButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 13, borderRadius: 13, backgroundColor: BRAND.paleBlue },
+  loginText: { fontSize: 14, fontWeight: '700', color: BRAND.deepBlue },
+  hero: { paddingHorizontal: 22, paddingTop: 31, paddingBottom: 32, alignItems: 'center' },
+  eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E5F4FF' },
+  eyebrowDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: BRAND.blue },
+  eyebrowText: { fontSize: 10, fontWeight: '800', letterSpacing: 1.15, color: BRAND.deepBlue },
+  heroTitle: { marginTop: 20, fontSize: 34, lineHeight: 40, fontWeight: '800', letterSpacing: -1.2, textAlign: 'center', color: BRAND.ink },
+  heroBody: { maxWidth: 340, marginTop: 12, fontSize: 15, lineHeight: 23, textAlign: 'center', color: BRAND.muted },
+  heroVisual: { height: 206, width: '100%', maxWidth: 370, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  visualOrbOuter: { width: 158, height: 158, borderRadius: 80, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E4F3FF', borderWidth: 1, borderColor: '#C8E4F9' },
+  visualOrbInner: { width: 112, height: 112, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', shadowColor: '#237EC2', shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 5 },
+  heroLogo: { width: 92, height: 92, borderRadius: 24 },
+  signalDot: { position: 'absolute', width: 13, height: 13, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#91C9F3' },
+  signalDotTop: { top: 8, left: 73 },
+  signalDotRight: { right: 4, top: 73 },
+  signalDotBottom: { bottom: 8, left: 73 },
+  scanPill: { position: 'absolute', bottom: 9, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: BRAND.border, shadowColor: '#12304A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 9, elevation: 3 },
+  scanPillText: { fontSize: 12, fontWeight: '700', color: BRAND.ink },
+  ctas: { width: '100%', maxWidth: 380, alignItems: 'stretch', gap: 4 },
+  primaryButton: { width: '100%', alignSelf: 'stretch', justifyContent: 'center', minHeight: 56, backgroundColor: BRAND.blue, borderColor: BRAND.blue, borderRadius: 16, elevation: 3, shadowOpacity: 0.16, shadowRadius: 8 },
+  primaryButtonText: { color: '#FFFFFF', textTransform: 'none', letterSpacing: 0.1, fontSize: 16 },
+  createAccountButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+  createAccountText: { fontSize: 14, fontWeight: '700', color: BRAND.deepBlue },
+  heroNote: { marginTop: 8, fontSize: 11, lineHeight: 16, textAlign: 'center', color: '#70869A' },
+  section: { paddingHorizontal: 20, paddingTop: 21, paddingBottom: 8 },
+  sectionHeading: { marginBottom: 16 },
+  kicker: { marginBottom: 8, fontSize: 10, fontWeight: '800', letterSpacing: 1.2, color: BRAND.deepBlue },
+  sectionTitle: { fontSize: 23, lineHeight: 29, fontWeight: '800', letterSpacing: -0.5, color: BRAND.ink },
+  featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 11 },
+  featureCard: { width: '48%', flexGrow: 1, minHeight: 146, padding: 15, borderRadius: 18, backgroundColor: BRAND.surface, borderWidth: 1, borderColor: BRAND.border, shadowColor: '#18476B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2 },
+  featureIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: BRAND.paleBlue, marginBottom: 12 },
+  featureTitle: { fontSize: 14, fontWeight: '800', color: BRAND.ink },
+  featureBody: { marginTop: 5, fontSize: 12, lineHeight: 18, color: BRAND.muted },
+  learnSection: { paddingTop: 17 },
+  learnCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 18, backgroundColor: '#EAF6FF', borderWidth: 1, borderColor: '#D3EAF9' },
+  learnIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  learnCopy: { flex: 1 },
+  learnTitle: { fontSize: 14, fontWeight: '800', color: BRAND.ink },
+  learnBody: { marginTop: 4, fontSize: 12, lineHeight: 17, color: BRAND.muted },
+  linksSection: { paddingTop: 27, gap: 9 },
+  navCard: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 13, borderRadius: 16, backgroundColor: BRAND.surface, borderWidth: 1, borderColor: BRAND.border },
+  navIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: BRAND.paleBlue },
+  navLabel: { flex: 1, fontSize: 14, fontWeight: '700', color: BRAND.ink },
+  footer: { alignItems: 'center', paddingHorizontal: 26, paddingTop: 30 },
+  footerBrand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  footerLogo: { width: 22, height: 22, borderRadius: 6 },
+  footerBrandName: { fontSize: 13, fontWeight: '800', color: BRAND.ink },
+  footerNote: { marginTop: 9, fontSize: 11, lineHeight: 16, textAlign: 'center', color: BRAND.muted },
 });
