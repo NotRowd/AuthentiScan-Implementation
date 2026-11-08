@@ -128,7 +128,7 @@ export default function PricingScreen() {
 
           <Animated.View style={sectionStyle(2)} onLayout={registerSection(2)}>
             <TouchableOpacity onPress={() => setSelectedPlan('premium')} activeOpacity={0.86} accessibilityRole="button" accessibilityLabel="Select premium plan" accessibilityState={{ selected: selectedPlan === 'premium' }}>
-              <GlassCard style={[styles.planCard, styles.premiumPlanCard, selectedPlan === 'premium' && styles.premiumSelected]} active={selectedPlan === 'premium'} variant="strong">
+              <GlassCard style={[styles.planCard, styles.premiumPlanCard, ...(selectedPlan === 'premium' ? [styles.premiumSelected] : [])]} active={selectedPlan === 'premium'} variant="strong">
                 <View style={styles.premiumTag}><Ionicons name="star" size={12} color={Colors.white} /><CyberText variant="caption" color={Colors.white}>PREMIUM</CyberText></View>
                 <View style={styles.planHeader}>
                   <View style={styles.planTitleLine}><View style={[styles.planIcon, styles.premiumIcon]}><Ionicons name="shield-checkmark" size={17} color={Colors.cyan} /></View><CyberText variant="h4">Premium</CyberText></View>

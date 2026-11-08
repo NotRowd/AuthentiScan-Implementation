@@ -41,8 +41,9 @@ function Navigation() {
           animation: 'fade',
         }}
       >
+        {/* Keep the root entry available for both auth states; it routes after session restore. */}
+        <Stack.Screen name="index" options={{ animation: 'none' }} />
         <Stack.Protected guard={!isAuthenticated}>
-          <Stack.Screen name="index" options={{ animation: 'none' }} />
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
         <Stack.Protected guard={isAuthenticated}>

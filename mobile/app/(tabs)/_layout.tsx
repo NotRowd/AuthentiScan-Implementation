@@ -2,6 +2,7 @@ import { Tabs, Redirect } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import Typography from '../../constants/Typography';
@@ -19,13 +20,14 @@ import Typography from '../../constants/Typography';
  */
 export default function TabsLayout() {
   const { isLoading, isAuthenticated } = useAuth();
+  const insets = useSafeAreaInsets();
   if (isLoading) return null;
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { height: Spacing.tabBarHeight + insets.bottom, paddingBottom: insets.bottom + 8 }],
         tabBarActiveTintColor: Colors.cyan,
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarLabelStyle: styles.tabBarLabel,
@@ -42,7 +44,7 @@ export default function TabsLayout() {
         options={{
           title: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+            <Ionicons name="home-outline" size={size} color={typeof color === 'string' ? color : Colors.textSecondary} />
           ),
         }}
       />
@@ -50,10 +52,8 @@ export default function TabsLayout() {
         name="scan"
         options={{
           title: 'Scan',
-          tabBarIcon: ({ color }) => (
-            <View style={[styles.scanTab, color === Colors.cyan && styles.scanTabActive]}>
-              <Ionicons name="scan-outline" size={26} color={color === Colors.cyan ? Colors.bgPrimary : color} />
-            </View>
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="scan-outline" size={size} color={typeof color === 'string' ? color : Colors.textSecondary} />
           ),
         }}
       />
@@ -62,7 +62,7 @@ export default function TabsLayout() {
         options={{
           title: 'History',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time-outline" size={size} color={color} />
+            <Ionicons name="time-outline" size={size} color={typeof color === 'string' ? color : Colors.textSecondary} />
           ),
         }}
       />
@@ -71,7 +71,7 @@ export default function TabsLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+            <Ionicons name="settings-outline" size={size} color={typeof color === 'string' ? color : Colors.textSecondary} />
           ),
         }}
       />
@@ -106,25 +106,5 @@ const styles = StyleSheet.create({
   },
   tabBarItem: {
     paddingTop: 4,
-  },
-  scanTab: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: Colors.glassBgStrong,
-    borderWidth: 1,
-    borderColor: Colors.glassBorderCyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  scanTabActive: {
-    backgroundColor: Colors.cyan,
-    borderColor: Colors.cyan,
-    shadowColor: Colors.cyan,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
   },
 });
