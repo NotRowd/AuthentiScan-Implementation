@@ -1,10 +1,12 @@
 import { API_BASE_URL, AI_MEDIA_BASE_URL, OFFLINE_MODE, validateBaseUrl } from './config';
 import { clearSession, getToken, sessionRevision } from './session';
+import { savedScanIdPattern } from '../scan/scanId';
 export async function mediaSource(uri: string, heatmap = false): Promise<{ uri: string; headers?: Record<string, string> } | null> {
   if (/^(file:\/\/|content:\/\/|data:image\/)/.test(uri)) return { uri };
   if (OFFLINE_MODE || !uri) return null;
-  if (!heatmap) {
-    if (!/^\/api\/v1\/scans\/[1-9]\d*\/image$/.test(uri)) throw new Error('Invalid protected image path.');
+  if (!heatmap || uri.startsWith('/api/')) {
+    const kind = heatmap ? 'heatmap' : '(?:image|localization-image(?:\\?variant=(?:original|overlay))?)';
+    if (!new RegExp('^/api/v1/scans/' + savedScanIdPattern + '/' + kind + '$').test(uri)) throw new Error('Invalid protected image path.');
     validateBaseUrl(API_BASE_URL);
     const token = await getToken();
     if (!token) throw new Error('Please sign in again.');
@@ -23,9 +25,10 @@ export async function mediaSource(uri: string, heatmap = false): Promise<{ uri: 
 // Keep protected images in memory, not in a public URL or a persistent shared cache.
 // Expo Go's native Image path can omit Authorization even when source headers are set.
 export async function loadMediaSource(uri: string, heatmap = false, signal?: AbortSignal) {
+  const version = sessionRevision();
   const source = await mediaSource(uri, heatmap);
   if (!source?.headers) return source;
-  const version = sessionRevision();
+  if (signal?.aborted || version !== sessionRevision()) throw new Error('Image request cancelled.');
   const response = await fetch(source.uri, { headers: source.headers, signal, redirect: 'error', cache: 'no-store' });
   if (version !== sessionRevision()) throw new Error('Session changed.');
   if (response.status === 401) {

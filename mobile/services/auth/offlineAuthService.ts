@@ -6,7 +6,7 @@ import { mapUser, unwrap } from '../api/adapters';
 import { clearLatestScanResult } from '../scan/scanSession';
 export type AuthCredentials = { email: string; password: string };
 export type RegisterPayload = RegisterRequest;
-export type ProfileUpdatePayload = { name: string };
+export type ProfileUpdatePayload = { name: string } | { firstName: string; lastName: string };
 export type AuthServiceResult<T> = { success: true; data: T } | { success: false; error: string };
 const SESSION_KEY = '@authentiscan/offline-v2/session';
 const profilesKey = (email: string) => '@authentiscan/offline-v2/profile/' + encodeURIComponent(email.trim().toLowerCase());

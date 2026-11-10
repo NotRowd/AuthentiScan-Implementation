@@ -3,22 +3,22 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, View, type ImageStyle,
 import CyberText from './CyberText';
 import { loadMediaSource } from '../../services/api/media';
 import { onSessionCleared } from '../../services/api/session';
-type Props = { uri: string; heatmap?: boolean; style: StyleProp<ImageStyle>; label?: string };
-export default function ScanImage({ uri, heatmap = false, style, label = 'Scan image' }: Props) {
+type Props = { uri: string; heatmap?: boolean; style: StyleProp<ImageStyle>; label?: string; timeoutMs?: number };
+export default function ScanImage({ uri, heatmap = false, style, label = 'Scan image', timeoutMs = 20000 }: Props) {
   const [source, setSource] = useState<Awaited<ReturnType<typeof loadMediaSource>>>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     const unsubscribe = onSessionCleared(() => { active = false; controller.abort(); setSource(null); setFailed(true); });
     setSource(null); setFailed(false);
     loadMediaSource(uri, heatmap, controller.signal).then(value => { if (active) { setSource(value); setFailed(!value); } })
       .catch(() => { if (active) setFailed(true); })
       .finally(() => clearTimeout(timeout));
     return () => { active = false; clearTimeout(timeout); controller.abort(); unsubscribe(); };
-  }, [uri, heatmap, attempt]);
+  }, [uri, heatmap, attempt, timeoutMs]);
   // Protected images were fetched with auth and are displayed from an in-memory URI.
   return <View style={[style, styles.frame]}>
     {failed ? <Pressable style={styles.placeholder} accessibilityRole="button" accessibilityLabel={'Retry ' + label}

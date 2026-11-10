@@ -1,3 +1,4 @@
+import { isSavedScanId, savedScanIdPattern } from './scanId';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
@@ -10,7 +11,7 @@ let exporting = false;
 /** Fetch a saved report only. Never upload an image or call AI inference. */
 export async function downloadScanReport(scanId: string, signal?: AbortSignal, timeoutMs = 20000) {
   if (OFFLINE_MODE) throw new Error('PDF export needs a saved backend scan, not an offline sample.');
-  if (!/^[1-9]\d*$/.test(scanId) || !Number.isSafeInteger(Number(scanId))) throw new Error('Invalid saved scan ID.');
+  if (!isSavedScanId(scanId)) throw new Error('Invalid saved scan ID.');
   validateBaseUrl(API_BASE_URL);
   const token = await getToken();
   if (!token) throw new Error('Please sign in before exporting a report.');
@@ -77,7 +78,7 @@ export async function shareSavedScanReport(scanId: string, signal?: AbortSignal)
     try {
       for (const entry of directory.list()) {
         if (!(entry instanceof File)) continue;
-        const match = /^AuthentiScan-scan-[1-9]\d*-(\d+)\.pdf$/.exec(entry.name);
+        const match = new RegExp('^AuthentiScan-scan-' + savedScanIdPattern + '-(\\d+)\\.pdf$').exec(entry.name);
         if (match && Number(match[1]) < Date.now() - 86400000) entry.delete();
       }
     } catch { /* OS cache cleanup can also reclaim old reports. */ }

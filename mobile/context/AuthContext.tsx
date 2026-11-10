@@ -13,13 +13,15 @@ import { onSessionCleared } from '../services/api/session';
 
 // ─── Context types ────────────────────────────────────────────────────────────
 
+type SignInResult = { error?: string; emailVerificationRequired?: boolean };
 type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: AuthCredentials) => Promise<{ error?: string }>;
-  register: (payload: RegisterPayload) => Promise<{ error?: string }>;
+  login: (credentials: AuthCredentials) => Promise<SignInResult>;
+  register: (payload: RegisterPayload) => Promise<SignInResult>;
   logout: () => Promise<void>;
+  refreshAccount: () => Promise<void>;
   activatePremium: () => Promise<void>;
   updateProfile: (payload: ProfileUpdatePayload) => Promise<{ error?: string }>;
 };
@@ -54,11 +56,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const login = useCallback(
-    async (credentials: AuthCredentials): Promise<{ error?: string }> => {
+    async (credentials: AuthCredentials): Promise<SignInResult> => {
       const result = await authService.login(credentials);
       if (result.success) {
         setUser(result.data);
-        return {};
+        return { emailVerificationRequired: result.data.emailVerificationRequired };
       }
       return { error: result.error };
     },
@@ -66,11 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const register = useCallback(
-    async (payload: RegisterPayload): Promise<{ error?: string }> => {
+    async (payload: RegisterPayload): Promise<SignInResult> => {
       const result = await authService.register(payload);
       if (result.success) {
         setUser(result.data);
-        return {};
+        return { emailVerificationRequired: result.data.emailVerificationRequired };
       }
       return { error: result.error };
     },
@@ -79,6 +81,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = useCallback(async (): Promise<void> => {
     try { await authService.logout(); } finally { setUser(null); }
+  }, []);
+  const refreshAccount = useCallback(async () => {
+    const revision = authService.getRevision();
+    const account = await authService.getSession();
+    if (revision === authService.getRevision()) setUser(account);
   }, []);
 
   const activatePremium = useCallback(async (): Promise<void> => {
@@ -106,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         login,
         register,
         logout,
+        refreshAccount,
         activatePremium,
         updateProfile,
       }}

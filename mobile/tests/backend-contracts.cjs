@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const Module = require('node:module');
 const ts = require('typescript');
 process.env.EXPO_PUBLIC_API_MODE = 'backend';
-process.env.EXPO_PUBLIC_API_BASE_URL = 'http://10.0.2.2:5000';
+process.env.EXPO_PUBLIC_API_BASE_URL = 'https://authentiscan.example.test';
 process.env.EXPO_PUBLIC_AI_MEDIA_BASE_URL = 'http://10.0.2.2:5001';
 const secure = new Map(), offline = new Map();
 const originalLoad = Module._load;
@@ -40,7 +40,7 @@ const session = require('../services/api/session.ts');
 const { apiRequest } = require('../services/api/client.ts');
 const { mediaSource, loadMediaSource } = require('../services/api/media.ts');
 const { validateBaseUrl } = require('../services/api/config.ts');
-const { realScanService } = require('../services/scan/scanService.ts');
+const { checkScanReadiness, realScanService } = require('../services/scan/scanService.ts');
 const { scanHistoryService: history } = require('../services/scan/scanHistoryService.ts');
 const { makeScanFixture } = require('../services/scan/mockScanService.ts');
 const { getLatestScanResult, setLatestScanResult } = require('../services/scan/scanSession.ts');
@@ -48,8 +48,23 @@ const image = { uri: 'file:///picker-cache/random-uuid.png', fileName: 'test.png
 const raw = scenario => makeScanFixture(image, scenario, 19).data;
 let passed = 0;
 async function test(name, fn) { await fn(); passed++; console.log('PASS ' + name); }
+const firebaseToken = 'TEST-TOKEN-NOT-A-REAL-JWT';
+const rawResponse = data => ({ ok: true, status: 200, json: async () => data });
+function firebaseFetch(url, options = {}) {
+  if (url.endsWith('/api/config')) return rawResponse({
+    mode: 'cloud-hybrid', firebase: { projectId: 'authentiscan-bc704', apiKey: 'synthetic-key' }, authEmulatorUrl: null,
+  });
+  if (url.startsWith('https://identitytoolkit.googleapis.com/v1/accounts:')) {
+    assert.equal(options.headers.Authorization, undefined);
+    return rawResponse({ idToken: firebaseToken, refreshToken: 'TEST-REFRESH', expiresIn: '3600' });
+  }
+  assert.equal(options.headers.Authorization, 'Bearer ' + firebaseToken);
+  if (url.endsWith('/auth/me')) return response({ user, plan: user.plan });
+  if (url.endsWith('/api/me')) return rawResponse({ message: 'Profile saved.' });
+  throw new Error('Unexpected request ' + url);
+}
 async function login() {
-  global.fetch = async () => response({ user, token: 'TEST-TOKEN-NOT-A-REAL-JWT' });
+  global.fetch = async (...args) => firebaseFetch(...args);
   assert.equal((await auth.login({ email: user.email, password: 'test-password-only' })).success, true);
 }
 async function main() {
@@ -58,16 +73,20 @@ async function main() {
     assert.equal(await auth.getSession(), null);
     await assert.rejects(history.getAll(), /paginated/);
   });
-  await test('registration sends backend fields and saves only a secure token', async () => {
+  await test('Firebase registration creates the shared profile without storing the password', async () => {
+    const requests = [];
     global.fetch = async (url, options) => {
-      assert.equal(url, 'http://10.0.2.2:5000/api/v1/auth/register');
-      assert.equal(options.headers.Authorization, undefined);
-      assert.deepEqual(JSON.parse(options.body), { firstName: 'Mobile', lastName: 'Test', email: user.email, password: 'not-real-password' });
-      return response({ user, token: 'TEST-TOKEN-NOT-A-REAL-JWT' }, 201);
+      requests.push(url);
+      if (url.includes('accounts:signUp?')) {
+        assert.deepEqual(JSON.parse(options.body), { email: user.email, password: 'not-real-password', returnSecureToken: true });
+      }
+      if (url.endsWith('/api/me')) assert.deepEqual(JSON.parse(options.body), { firstName: 'Mobile', lastName: 'Test' });
+      return firebaseFetch(url, options);
     };
-    const result = await auth.register({ firstName: ' Mobile ', lastName: 'Test', email: 'MOBILE@example.test', password: 'not-real-password' });
+    const result = await auth.register({ firstName: ' Mobile ', lastName: 'Test', email: user.email, password: 'not-real-password' });
     assert.equal(result.success, true); assert.equal(result.data.scanLimit, 5);
     assert.equal(secure.size, 1);
+    assert.ok(requests.some(url => url.includes('accounts:update?')));
     assert.ok(!JSON.stringify([...secure.values()]).includes('not-real-password'));
     assert.ok(!JSON.stringify([...offline.values()]).includes('TEST-TOKEN'));
   });
@@ -80,14 +99,15 @@ async function main() {
     assert.equal((await auth.getSession()).name, 'Mobile Test');
   });
   await test('server validation messages are preserved', async () => {
-    global.fetch = async () => response('An account with this email already exists.', 409);
+    global.fetch = async () => ({ ok: false, status: 400, json: async () => ({ error: { message: 'EMAIL_EXISTS' } }) });
     const result = await auth.register({ firstName: 'Mobile', lastName: 'Test', email: user.email, password: 'test-password' });
-    assert.equal(result.success, false); assert.match(result.error, /already exists/);
+    assert.equal(result.success, false); assert.match(result.error, /already has an account/);
   });
   await test('native multipart preserves original filename instead of picker UUID and lets fetch set boundary', async () => {
     global.fetch = async (url, options) => {
       assert.ok(url.endsWith('/scans')); assert.equal(options.method, 'POST');
       assert.equal(options.headers['Content-Type'], undefined); assert.match(options.headers.Authorization, /^Bearer /);
+      assert.match(options.headers['Idempotency-Key'], /^[a-f0-9-]{36}$/);
       const part = options.body.get('image');
       assert.equal(part.name, image.fileName);
       assert.equal(typeof part.bytes, 'function');
@@ -126,6 +146,32 @@ async function main() {
     await assert.rejects(realScanService.analyzeImage(image), /limit/);
     assert.ok(await session.getToken());
   });
+  await test('an ambiguous upload retry reuses its UUID', async () => {
+    const selected = { ...image };
+    let firstKey;
+    global.fetch = async (_url, options) => {
+      firstKey = options.headers['Idempotency-Key'];
+      throw new Error('fetch failed');
+    };
+    await assert.rejects(realScanService.analyzeImage(selected), /History/);
+    global.fetch = async (_url, options) => {
+      assert.equal(options.headers['Idempotency-Key'], firstKey);
+      return response(raw('authentic'), 200);
+    };
+    await realScanService.analyzeImage(selected);
+  });
+  await test('web UUIDs work for history, protected heatmaps and deletion', async () => {
+    const id = '66f4d45a-5ad4-478e-aee4-dc1eed35a522';
+    global.fetch = async (url, options) => {
+      assert.ok(url.endsWith('/scans/' + id));
+      if (options.method === 'DELETE') return response({});
+      return response({ ...raw('authentic'), scan_id: id });
+    };
+    assert.equal((await history.getScan(id)).id, id);
+    const source = await mediaSource('/api/v1/scans/' + id + '/heatmap', true);
+    assert.equal(source.headers.Authorization, 'Bearer ' + firebaseToken);
+    await history.remove(id);
+  });
   await test('history uses explicit pagination and keeps server totals', async () => {
     global.fetch = async (url) => {
       assert.ok(url.endsWith('/scans?limit=20&offset=20'));
@@ -159,7 +205,7 @@ async function main() {
   });
   await test('image auth is restricted to backend; heatmaps never receive JWT', async () => {
     const source = await mediaSource('/api/v1/scans/19/image');
-    assert.equal(source.uri, 'http://10.0.2.2:5000/api/v1/scans/19/image');
+    assert.equal(source.uri, 'https://authentiscan.example.test/api/v1/scans/19/image');
     assert.match(source.headers.Authorization, /^Bearer /);
     const heatmap = await mediaSource('http://127.0.0.1:5001/heatmaps/test.png', true);
     assert.equal(heatmap.uri, 'http://10.0.2.2:5001/heatmaps/test.png'); assert.equal(heatmap.headers, undefined);
@@ -169,7 +215,7 @@ async function main() {
   });
   await test('protected image bytes use authenticated fetch and never expose a token in the image URI', async () => {
     global.fetch = async (url, options) => {
-      assert.equal(url, 'http://10.0.2.2:5000/api/v1/scans/19/image');
+      assert.equal(url, 'https://authentiscan.example.test/api/v1/scans/19/image');
       assert.match(options.headers.Authorization, /^Bearer /);
       assert.equal(options.redirect, 'error');
       assert.equal(options.cache, 'no-store');
@@ -232,7 +278,7 @@ async function main() {
   });
   await test('failed secure storage never authenticates the app', async () => {
     await auth.logout(); storageFail = true;
-    global.fetch = async () => response({ user, token: 'test-token' });
+    global.fetch = async (...args) => firebaseFetch(...args);
     const result = await auth.login({ email: user.email, password: 'test-password' });
     assert.equal(result.success, false); assert.equal(await session.getToken(), null);
     storageFail = false;
@@ -246,6 +292,82 @@ async function main() {
     secure.set('authentiscan.backend.session.v1', JSON.stringify({ origin: 'https://different.example', token: 'other-token' }));
     delete require.cache[modulePath];
     assert.equal(await require(modulePath).getToken(), null);
+  });
+  await test('expired Firebase sessions refresh once for concurrent requests', async () => {
+    const modulePath = require.resolve('../services/api/session.ts');
+    secure.set('authentiscan.backend.session.v1', JSON.stringify({
+      origin: 'https://authentiscan.example.test', token: 'old', refreshToken: 'old-refresh', expiresAt: 0,
+    }));
+    delete require.cache[modulePath];
+    const fresh = require(modulePath);
+    let calls = 0;
+    global.fetch = async (url, options) => {
+      assert.ok(url.startsWith('https://securetoken.googleapis.com/v1/token?'));
+      assert.match(options.body, /refresh_token=old-refresh/);
+      calls++;
+      return rawResponse({ id_token: 'new-token', refresh_token: 'new-refresh', expires_in: '3600' });
+    };
+    assert.deepEqual(await Promise.all([fresh.getToken(), fresh.getToken()]), ['new-token', 'new-token']);
+    assert.equal(calls, 1);
+    assert.equal(fresh.sessionRevision(), 0);
+  });
+  await test('upload preflight rejects unavailable AI and exhausted quota before upload', async () => {
+    await login();
+    let ai = 'offline', scans_remaining = 5;
+    global.fetch = async (url, options) => {
+      assert.equal(options.method, 'GET');
+      if (url.endsWith('/system/health')) return response({ backend: 'online', ai });
+      if (url.endsWith('/users/stats')) return response({ scans_remaining });
+      throw new Error('Unexpected request ' + url);
+    };
+    const fresh = { ...image };
+    await assert.rejects(checkScanReadiness(fresh), /AI service is not ready/);
+    ai = 'ready'; scans_remaining = 0;
+    await assert.rejects(checkScanReadiness(fresh), /No scans remain/);
+    scans_remaining = null;
+    await checkScanReadiness(fresh);
+    let calls = 0;
+    global.fetch = async (_url, options) => {
+      calls++;
+      assert.equal(options.method, 'POST');
+      return response('Interrupted', 503);
+    };
+    await assert.rejects(realScanService.analyzeImage(fresh), /Interrupted/);
+    await checkScanReadiness(fresh);
+    assert.equal(calls, 1, 'An ambiguous upload must bypass the preflight on retry');
+  });
+  await test('saved review preserves current version and matching image context only', async () => {
+    const { mapScan } = require('../services/api/adapters.ts');
+    const { describeVisualReview } = require('../services/scan/visualReview.ts');
+    const review = {
+      anomaly_review_version: 'visual-anomalies-simple-v1', input_sha256: 'a'.repeat(64),
+      findings: [{ category: 'shape', status: 'no_clear_concern', observation: 'No concern reported.' }],
+    };
+    const scan = mapScan({ ...raw('authentic'), scan_number: 4, feature_review: review,
+      object_detection: { status: 'available', objects: [{ label: 'person', score: .8 }] } });
+    assert.equal(scan.scanNumber, 4);
+    assert.equal(scan.objectDetection.objects[0].label, 'person');
+    assert.equal(describeVisualReview({ ...review, anomaly_review_version: 'old' }, null), null);
+    const scene = { image_type: 'logo', input_sha256: 'b'.repeat(64) };
+    assert.doesNotMatch(describeVisualReview(review, scene).text, /designed graphic/);
+    assert.match(describeVisualReview(review, { ...scene, input_sha256: review.input_sha256 }).text, /designed graphic/);
+    assert.equal(describeVisualReview({ ...review, findings: [{ status: 'unable_to_assess', observation: 'Inconclusive' }] }, null).label, 'Review uncertain');
+  });
+  await test('checkout return waits for server-confirmed Pro and stops on cancellation', async () => {
+    const { confirmCheckout } = require('../services/payment/confirmCheckout.ts');
+    const controller = new AbortController();
+    const state = { enabled: true, plan: { scan_limit: 5 }, orders: [{ id: 'order', status: 'pending' }] };
+    let refreshes = 0;
+    const read = async () => state;
+    assert.equal(await confirmCheckout('order', controller.signal, 5, read, async () => {
+      refreshes++;
+      if (refreshes === 2) state.plan.scan_limit = null;
+    }, async () => {}), false);
+    assert.equal(refreshes, 2);
+    state.plan.scan_limit = 5;
+    state.orders[0].status = 'expired';
+    assert.equal(await confirmCheckout('order', controller.signal, 5, read, async () => { refreshes++; }), false);
+    assert.equal(refreshes, 2);
   });
   console.log(passed + ' backend contract tests passed. Fetch and storage were mocked; no real accounts created.');
 }

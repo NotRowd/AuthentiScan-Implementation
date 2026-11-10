@@ -5,6 +5,7 @@ import { OFFLINE_MODE } from '../api/config';
 import { API_ROUTES, type ScanListResponse, type StatsResponse, type ApiResponse, type ApiScan } from '../api/contracts';
 import { mapScanList, mapScan, unwrap } from '../api/adapters';
 import { apiRequest } from '../api/client';
+import { isSavedScanId } from './scanId';
 import { historyQuery, matchesHistory, type HistoryFilters } from './historyFilters';
 export const historyKey = (email: string) => '@authentiscan/offline-v2/scans/' + encodeURIComponent(email.trim().toLowerCase());
 // Legacy shared history is preserved but never assigned to an account.
@@ -41,16 +42,18 @@ export const scanHistoryService = {
       scans_remaining: user?.scanLimit === null ? null : Math.max((user?.scanLimit || 0) - scans.filter(scan => scan.status !== 'failed').length, 0),
       plan: user ? { name: user.plan, scan_limit: user.scanLimit } : null };
   },
-  async getScan(id: string): Promise<ScanResult> {
+  async getScan(id: string, signal?: AbortSignal): Promise<ScanResult> {
     if (!OFFLINE_MODE) {
-      if (!/^[1-9]\d*$/.test(id)) throw new Error('Invalid scan ID.');
-      return mapScan(unwrap(await apiRequest<ApiResponse<ApiScan>>(API_ROUTES.scans + '/' + id)));
+      if (!isSavedScanId(id)) throw new Error('Invalid scan ID.');
+      return mapScan(unwrap(await apiRequest<ApiResponse<ApiScan>>(API_ROUTES.scans + '/' + id, { signal })));
     }
     const result = (await this.getAll()).find(scan => scan.id === id);
     if (!result) throw new Error('Scan not found.');
     return result;
   },
-  async remove(_id: string): Promise<void> {
-    throw new Error('Deleting scans is unavailable in the current backend.');
+  async remove(id: string): Promise<void> {
+    if (OFFLINE_MODE) throw new Error('Deleting scans is unavailable in offline mode.');
+    if (!isSavedScanId(id)) throw new Error('Select a saved backend scan.');
+    await apiRequest(API_ROUTES.scans + '/' + id, { method: 'DELETE', timeoutMs: 145000 });
   },
 };

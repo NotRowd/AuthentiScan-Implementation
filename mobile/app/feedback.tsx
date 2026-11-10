@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,32 +20,51 @@ export default function FeedbackScreen() {
   const [comment, setComment] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const saving = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { if (!result) router.replace('/(tabs)/history'); }, [result]);
+  const id = result?.id;
+  useEffect(() => {
+    if (!id) return;
+    const controller = new AbortController();
+    setLoading(true); setLoadFailed(false); setError(null);
+    feedbackService.load(id, controller.signal).then(value => {
+      if (controller.signal.aborted || !value) return;
+      setRating(value.rating); setComment(value.comment || ''); setSaved(true);
+    }).catch(error => {
+      if (!controller.signal.aborted) { setError(error.message); setLoadFailed(true); }
+    }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [id, attempt]);
   if (!result) return null;
 
   const saveFeedback = async () => {
     if (!rating) { setError('Choose a rating before saving your feedback.'); return; }
+    if (saving.current || loading || loadFailed) return;
+    saving.current = true;
     setIsSaving(true); setError(null);
     try {
       await feedbackService.save({ scanId: result.id, rating, comment: comment.trim() || undefined });
       setSaved(true);
-    } catch { setError("We couldn't save your feedback on this device. Please try again."); }
-    finally { setIsSaving(false); }
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not save feedback.'); setLoadFailed(true); }
+    finally { saving.current = false; setIsSaving(false); }
   };
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#05070D', '#0B0F1A', '#05070D']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']} style={StyleSheet.absoluteFill} />
       <ScanGrid animated={false} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back"><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity>
             <View style={styles.heading}><View style={styles.icon}><Ionicons name="chatbubble-ellipses-outline" size={30} color={Colors.cyan} /></View><CyberText variant="h3" align="center">Rate this result</CyberText><CyberText variant="bodySmall" align="center">Tell us whether this report was useful.</CyberText></View>
-            {saved ? (
-              <GlassCard variant="strong" style={styles.savedCard} active><Ionicons name="checkmark-circle" size={42} color={Colors.authentic} /><CyberText variant="h4" align="center">Feedback saved</CyberText><CyberText variant="bodySmall" align="center">Your feedback was saved only on this device. It was not sent to a server.</CyberText><CyberButton label="Back to report" onPress={() => router.back()} size="sm" /></GlassCard>
+            {loading ? <CyberText variant="bodySmall">Loading feedback…</CyberText> : saved ? (
+              <GlassCard variant="strong" style={styles.savedCard} active><Ionicons name="checkmark-circle" size={42} color={Colors.authentic} /><CyberText variant="h4" align="center">Feedback saved</CyberText><CyberText variant="bodySmall" align="center">{rating} of 5 stars</CyberText>{!!comment && <CyberText variant="bodySmall">{comment}</CyberText>}<CyberButton label="Back to report" onPress={() => router.back()} size="sm" /></GlassCard>
             ) : (
               <GlassCard variant="strong" style={styles.card}>
                 <CyberText variant="label" color={Colors.cyan}>USEFULNESS RATING</CyberText>
@@ -53,8 +72,9 @@ export default function FeedbackScreen() {
                 <CyberText variant="caption" align="center">{rating ? `${rating} of 5 selected` : 'Select one to five stars'}</CyberText>
                 <View style={styles.inputGroup}><CyberText variant="label">OPTIONAL COMMENT</CyberText><TextInput value={comment} onChangeText={setComment} multiline maxLength={500} placeholder="What could make this report clearer?" placeholderTextColor={Colors.textMuted} style={styles.input} accessibilityLabel="Feedback comment" /></View>
                 {error && <View style={styles.error}><Ionicons name="alert-circle-outline" size={17} color={Colors.fake} /><CyberText variant="bodySmall" color={Colors.fake} style={styles.errorText}>{error}</CyberText></View>}
-                <CyberButton label="Save feedback locally" onPress={saveFeedback} loading={isSaving} disabled={isSaving} style={styles.fullButton} />
-                <CyberText variant="caption" align="center">Feedback sending is not connected in this prototype.</CyberText>
+                {loadFailed ? <CyberButton label="Reload feedback" onPress={() => setAttempt(value => value + 1)} /> :
+                  <CyberButton label="Submit feedback" onPress={saveFeedback} loading={isSaving} disabled={isSaving || !rating} style={styles.fullButton} />}
+                <CyberText variant="caption" align="center">One response per report.</CyberText>
               </GlassCard>
             )}
           </ScrollView>

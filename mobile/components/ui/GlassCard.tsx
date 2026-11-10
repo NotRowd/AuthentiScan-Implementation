@@ -35,7 +35,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
     variant === 'strong'
       ? Colors.glassBgStrong
       : variant === 'subtle'
-        ? 'rgba(255,255,255,0.03)'
+        ? '#F8FBFE'
         : Colors.glassBg;
 
   const borderColor = active ? Colors.glassBorderCyan : Colors.glassBorder;
@@ -60,11 +60,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: Spacing.cardPadding,
     // Subtle shadow for depth
-    shadowColor: Colors.cyan,
+    shadowColor: '#18476B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
 });
 

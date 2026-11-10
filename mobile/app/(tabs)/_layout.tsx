@@ -15,7 +15,7 @@ import Typography from '../../constants/Typography';
  * - History
  * - Settings
  *
- * Uses a custom dark glassmorphism tab bar.
+ * Uses a custom light tab bar with a prominent scan action.
  */
 export default function TabsLayout() {
   const { isLoading, isAuthenticated } = useAuth();
@@ -41,8 +41,8 @@ export default function TabsLayout() {
         name="dashboard"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({ focused, size }) => (
+            <Ionicons name="home-outline" size={size} color={focused ? Colors.cyan : Colors.textSecondary} />
           ),
         }}
       />
@@ -50,9 +50,9 @@ export default function TabsLayout() {
         name="scan"
         options={{
           title: 'Scan',
-          tabBarIcon: ({ color }) => (
-            <View style={[styles.scanTab, color === Colors.cyan && styles.scanTabActive]}>
-              <Ionicons name="scan-outline" size={26} color={color === Colors.cyan ? Colors.bgPrimary : color} />
+          tabBarIcon: ({ focused }) => (
+            <View style={[styles.scanTab, focused && styles.scanTabActive]}>
+              <Ionicons name="scan-outline" size={26} color={focused ? Colors.bgPrimary : Colors.textSecondary} />
             </View>
           ),
         }}
@@ -61,8 +61,8 @@ export default function TabsLayout() {
         name="history"
         options={{
           title: 'History',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time-outline" size={size} color={color} />
+          tabBarIcon: ({ focused, size }) => (
+            <Ionicons name="time-outline" size={size} color={focused ? Colors.cyan : Colors.textSecondary} />
           ),
         }}
       />
@@ -70,8 +70,8 @@ export default function TabsLayout() {
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
+          tabBarIcon: ({ focused, size }) => (
+            <Ionicons name="settings-outline" size={size} color={focused ? Colors.cyan : Colors.textSecondary} />
           ),
         }}
       />
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(5,7,13,0.92)',
+    backgroundColor: 'rgba(255,255,255,0.96)',
   },
   tabBarLabel: {
     fontSize: Typography.size.xs,

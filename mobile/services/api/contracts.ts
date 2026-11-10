@@ -3,16 +3,28 @@ export type ApiVerdict = 'authentic' | 'ai_generated' | 'uncertain';
 export type ApiScanStatus = 'queued' | 'processing' | 'completed' | 'failed';
 export type ApiResponse<T> = { success: true; message?: string; data: T } | { success: false; message: string };
 export type RegisterRequest = { firstName: string; lastName: string; email: string; password: string };
-export type ApiPlan = { name: string; scan_limit: number | null; billing_cycle?: string };
-export type ApiUser = { user_id: number; first_name: string; last_name: string; email: string; plan: ApiPlan | null };
+export type ApiPlan = { name: string; scan_limit: number | null; billing_cycle?: string; expires_at?: string };
+export type ApiUser = { user_id: number | string; first_name: string; last_name: string; email: string; plan: ApiPlan | null; email_verification_required?: boolean; email_verified?: boolean };
 export type AuthResponse = ApiResponse<{ user: ApiUser; token: string }>;
 export type MeResponse = ApiResponse<{ user: Omit<ApiUser, 'plan'>; plan: ApiPlan | null }>;
+export type ApiFeatureReview = {
+  anomaly_review_version?: string; model_version?: string; input_sha256?: string; image_type?: string;
+  findings?: { category?: string; status: string; observation: string; location?: string; reason?: string }[];
+};
+export type ApiObjectDetection = { status: string; model_version?: string; objects?: { label: string; score: number }[] };
 export type ApiAnalysis = {
+  decision_rule?: string; minimum_class_score?: number;
   verdict: ApiVerdict; confidence_score: number; authentic_score: number; ai_generated_score: number;
   readable_explanation: string; heatmap_url: string | null; model_version: string; analyzed_at: string;
 };
 export type ApiScan = {
-  scan_id: number; original_file_name: string; mime_type: string; file_size_bytes: number;
+  feature_review?: ApiFeatureReview;
+  scene_analysis?: { input_sha256?: string; image_type?: string; observation?: string };
+  upload_review?: { features?: string };
+  object_detection?: ApiObjectDetection;
+  localization?: { status: string; model_version?: string; highlighted_pixels?: number; image_width?: number; image_height?: number };
+  scan_number?: number;
+  scan_id: number | string; original_file_name: string; mime_type: string; file_size_bytes: number;
   status: ApiScanStatus; created_at: string; updated_at: string; image_url: string;
   credit_status?: 'not_charged' | 'reserved' | 'used';
   analysis_error?: { code: string; message: string };

@@ -27,6 +27,13 @@ export type GradCamResult = {
 };
 
 export type ScanResult = {
+  scanNumber?: number;
+  usesSixtyPercentRule?: boolean;
+  sceneAnalysis?: import('../services/api/contracts').ApiScan['scene_analysis'];
+  objectDetection?: import('../services/api/contracts').ApiScan['object_detection'];
+  visualReviewUnavailable?: boolean;
+  featureReview?: import('../services/api/contracts').ApiScan['feature_review'];
+  localization?: import('../services/api/contracts').ApiScan['localization'];
   status: import('../services/api/contracts').ApiScanStatus;
   analysisStatus: string;
   creditStatus?: 'not_charged' | 'reserved' | 'used';
@@ -93,6 +100,7 @@ export type User = {
   email: string;
   plan: SubscriptionPlan;
   avatarUri?: string;
+  emailVerificationRequired?: boolean;
 };
 
 export type AuthState = {

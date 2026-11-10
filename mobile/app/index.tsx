@@ -2,32 +2,30 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Easing,
+  Image,
   StyleSheet,
   View,
-  Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import CyberText from '../components/ui/CyberText';
 import ScanGrid from '../components/ui/ScanGrid';
 import GlowEffect from '../components/ui/GlowEffect';
 import Colors from '../constants/Colors';
 import { useAuth } from '../hooks/useAuth';
 
-const { width, height } = Dimensions.get('window');
-
 /**
  * Splash Screen (index.tsx)
  *
- * - Full dark navy background
- * - AuthentiScan shield logo with cyan glow
+ * - Light AuthentiScan branded background
+ * - AuthentiScan logo with cyan glow
  * - Radar sweep animation
  * - Subtle scan grid
  * - Auto-navigates after session check
  */
 export default function SplashScreen() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const needsVerification = user?.emailVerificationRequired === true;
 
   // Fade in animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -101,14 +99,14 @@ export default function SplashScreen() {
     // Navigate after splash display
     const timer = setTimeout(() => {
       if (isAuthenticated) {
-        router.replace('/(tabs)/dashboard');
+        router.replace(needsVerification ? '/verify-email' : '/(tabs)/dashboard');
       } else {
         router.replace('/(public)/home');
       }
-    }, 2800);
+    }, isAuthenticated ? 0 : 2800);
 
     return () => clearTimeout(timer);
-  }, [isLoading, isAuthenticated]);
+  }, [isLoading, isAuthenticated, needsVerification]);
 
   const radarRotate = radarAnim.interpolate({
     inputRange: [0, 1],
@@ -118,7 +116,7 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#05070D', '#0B0F1A', '#05070D']}
+        colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']}
         locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -151,18 +149,18 @@ export default function SplashScreen() {
           <View style={styles.radarSweep} />
         </Animated.View>
 
-        {/* Shield icon */}
+        {/* Brand logo */}
         <GlowEffect color={Colors.cyan} intensity="strong" pulse>
-          <View style={styles.shieldContainer}>
-            <Ionicons name="shield-checkmark" size={72} color={Colors.cyan} />
-          </View>
+          <Image
+            source={require('../assets/AuthentiScan-Logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityLabel="AuthentiScan logo"
+          />
         </GlowEffect>
 
-        {/* App name */}
+        {/* The logo contains the app name */}
         <View style={styles.brandingContainer}>
-          <CyberText variant="h2" align="center" color={Colors.textPrimary}>
-            AuthentiScan
-          </CyberText>
           <CyberText variant="label" align="center" color={Colors.cyan} style={styles.tagline}>
             AI Image Classification
           </CyberText>
@@ -197,7 +195,7 @@ export default function SplashScreen() {
 }
 
 const RADAR_SIZE = 180;
-const SHIELD_SIZE = 120;
+const LOGO_SIZE = 184;
 
 const styles = StyleSheet.create({
   container: {
@@ -241,16 +239,11 @@ const styles = StyleSheet.create({
     // Gradient-like sweep via opacity
     opacity: 0.25,
   },
-  shieldContainer: {
-    width: SHIELD_SIZE,
-    height: SHIELD_SIZE,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  logo: { width: LOGO_SIZE, height: LOGO_SIZE },
   brandingContainer: {
     alignItems: 'center',
     gap: 6,
-    marginTop: 32,
+    marginTop: 2,
   },
   tagline: {
     marginTop: 4,

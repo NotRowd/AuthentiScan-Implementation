@@ -1,20 +1,17 @@
+import { OFFLINE_MODE } from '../api/config';
+import { sendPasswordReset } from '../api/firebaseAuth';
+
 export type PasswordResetRequestResult =
-  | { success: true; delivery: 'not-configured' }
+  | { success: true; delivery: 'not-configured' | 'requested' }
   | { success: false; error: string };
 
-/**
- * Prototype-only reset request boundary.
- *
- * There is no authentication provider or email delivery service configured,
- * so this never sends an email or changes a password. Replace this service
- * with the provider's password-reset API when real authentication is added.
- */
 export const passwordResetService = {
   async requestReset(email: string): Promise<PasswordResetRequestResult> {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    if (!email.trim() || !email.includes('@')) {
+    if (email.length > 254 || !/^\S+@\S+\.\S+$/.test(email.trim())) {
       return { success: false, error: 'Enter a valid email address.' };
     }
-    return { success: true, delivery: 'not-configured' };
+    if (OFFLINE_MODE) return { success: true, delivery: 'not-configured' };
+    await sendPasswordReset(email.trim());
+    return { success: true, delivery: 'requested' };
   },
 };

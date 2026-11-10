@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassCard from '../components/ui/GlassCard';
@@ -10,69 +10,124 @@ import Colors from '../constants/Colors';
 import Spacing from '../constants/Spacing';
 import { getLatestScanResult, setLatestScanResult } from '../services/scan/scanSession';
 import { scanHistoryService } from '../services/scan/scanHistoryService';
+import { apiRequest } from '../services/api/client';
+import { FEATURE_LABELS, describeVisualReview } from '../services/scan/visualReview';
 import { OFFLINE_MODE } from '../services/api/config';
 import ScanImage from '../components/ui/ScanImage';
 import ExportReportButton from '../components/ui/ExportReportButton';
 
 export default function ResultScreen() {
   const [result, setResult] = useState(getLatestScanResult);
-  const [refreshing, setRefreshing] = useState(false);
+  const [operation, setOperation] = useState<'refresh' | 'features' | null>(null);
   const [error, setError] = useState('');
-  const active = useRef(true);
-  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
-  const refresh = async () => {
-    if (!result || refreshing) return;
-    setRefreshing(true); setError('');
-    try { const latest = await scanHistoryService.getScan(result.id); if (active.current) { setResult(latest); setLatestScanResult(latest); } }
-    catch (error) { if (active.current) setError(error instanceof Error ? error.message : 'Could not refresh scan.'); }
-    finally { if (active.current) setRefreshing(false); }
+  const [showChecks, setShowChecks] = useState(false);
+  const active = useRef<AbortController | null>(null);
+  useEffect(() => () => { active.current?.abort(); active.current = null; }, []);
+  const refresh = async (kind: 'refresh' | 'features' = 'refresh') => {
+    if (!result || active.current) return;
+    const controller = new AbortController();
+    active.current = controller;
+    setOperation(kind);
+    setError('');
+    try {
+      if (kind === 'features') {
+        await apiRequest('/api/v1/scans/' + result.id + '/features', {
+          method: 'POST', signal: controller.signal, timeoutMs: 395000,
+        });
+      }
+      const latest = await scanHistoryService.getScan(result.id, controller.signal);
+      if (active.current === controller) {
+        setResult(latest);
+        setLatestScanResult(latest);
+      }
+    } catch (failure) {
+      if (active.current === controller) setError(failure instanceof Error ? failure.message : 'Could not update this report.');
+    } finally {
+      if (active.current === controller) { active.current = null; setOperation(null); }
+    }
   };
   useEffect(() => { if (!result) router.replace('/(tabs)/history'); }, [result]);
   if (!result) return null;
-  const localHeatmap = result.gradCam?.heatmapUri;
+  const visualReview = describeVisualReview(result.featureReview, result.sceneAnalysis);
+  const creditMessage = {
+    not_charged: 'No scan credit used. This scan stays in your history.',
+    reserved: 'One scan credit is reserved while analysis is pending.',
+    used: 'One scan credit used for this completed analysis.',
+  };
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <CyberText variant="label" color={Colors.cyan}>{OFFLINE_MODE ? 'OFFLINE SAMPLE REPORT' : 'AI SCAN REPORT'}</CyberText>
         <CyberText variant="h3">{result.fileName}</CyberText>
-        <ScanImage uri={result.imageUri || result.imagePath} style={styles.image} label="Scanned image" />
-        <GlassCard style={styles.card}>
+        {result.scanNumber ? <CyberText variant="caption">Scan #{result.scanNumber}</CyberText> : null}
+        <ScanImage uri={result.imageUri || result.imagePath} style={styles.image} label="Original image" />
+        {!result.hasAnalysis && <GlassCard style={styles.card}>
           <CyberText variant="label">SCAN STATUS: {result.status.toUpperCase()}</CyberText>
           <CyberText variant="caption">Analysis status: {result.analysisStatus}</CyberText>
-          {result.hasAnalysis ? <VerdictChip verdict={result.verdict} /> : <CyberText variant="h4">No AI result available</CyberText>}
+          <CyberText variant="h4">No AI result available</CyberText>
           <CyberText variant="bodySmall">{result.summary}</CyberText>
           {result.creditStatus && <CyberText variant="caption">
-            {result.creditStatus === 'not_charged' ? 'No scan credit used. This failed scan stays in your history.' : result.creditStatus === 'reserved' ? 'One scan credit is reserved while analysis is pending.' : 'One scan credit used for this completed analysis.'}
+            {creditMessage[result.creditStatus]}
           </CyberText>}
-          {!result.hasAnalysis && <CyberText variant="caption">
+          <CyberText variant="caption">
             {OFFLINE_MODE ? 'This is a fixed offline scenario; no background AI task is running.' : 'Upload acceptance is not analysis completion. Refresh to check the saved status. The current backend does not automatically retry queued or failed scans.'}
-          </CyberText>}
-        </GlassCard>
-        {result.hasAnalysis && <>
+          </CyberText>
+        </GlassCard>}
+        {result.hasAnalysis &&
           <GlassCard style={styles.card}>
-            <CyberText variant="label">{OFFLINE_MODE ? 'SAMPLE SCORES' : 'MODEL SCORES'}</CyberText>
+            <CyberText variant="label">IMAGE CLASSIFICATION</CyberText>
+            <VerdictChip verdict={result.verdict} />
             <CyberText variant="h4">Confidence: {result.confidence}%</CyberText>
             <CyberText variant="body">Authentic: {result.authenticScore}%</CyberText>
             <CyberText variant="body">AI-generated: {result.aiGeneratedScore}%</CyberText>
-            {result.verdict === 'uncertain' && <CyberText variant="caption">Uncertain means the score falls near the decision threshold; neither class is confirmed.</CyberText>}
+            {result.verdict === 'uncertain' && <CyberText variant="caption">{result.usesSixtyPercentRule
+              ? 'Uncertain means both saved class scores were below 60%.'
+              : 'The saved decision rule did not confidently select either class.'}</CyberText>}
             <CyberText variant="caption">Scores are model estimates, not proof.{OFFLINE_MODE ? ' These values are mock fixtures.' : ''}</CyberText>
-            <CyberText variant="caption">Model: {result.modelVersion}</CyberText>
+            {result.usesSixtyPercentRule && result.verdict !== 'uncertain' &&
+              <CyberText variant="caption">A class is selected when its unrounded score reaches 60%.</CyberText>}
+            {result.creditStatus && <CyberText variant="caption">{creditMessage[result.creditStatus]}</CyberText>}
+          </GlassCard>
+        }
+        {!OFFLINE_MODE && result.hasAnalysis && <>
+          <GlassCard style={styles.card}>
+            <CyberText variant="label">SUSPECTED EDIT REGIONS</CyberText>
+            {result.localization?.status === 'available' ? <>
+              <ScanImage uri={'/api/v1/scans/' + result.id + '/localization-image'} style={styles.image} label="Suggested edit regions" timeoutMs={110000} />
+              {typeof result.localization.highlighted_pixels === 'number' &&
+                <CyberText variant="caption">{result.localization.highlighted_pixels.toLocaleString()} pixels highlighted</CyberText>}
+              <CyberText variant="caption">Highlights are suggestions for review and can be wrong.</CyberText>
+            </> : <CyberText variant="bodySmall">No reliable region is available to highlight.</CyberText>}
           </GlassCard>
           <GlassCard style={styles.card}>
-            <CyberText variant="label">GRAD-CAM VISUALIZATION</CyberText>
-            {localHeatmap
-              ? <ScanImage uri={localHeatmap} heatmap style={styles.image} label="Grad-CAM heatmap" />
-              : <CyberText variant="bodySmall">No heatmap was supplied for this result.</CyberText>}
-            <CyberText variant="caption">The backend supplies an image, not named face regions. A heatmap indicates contributions to a class score, not proof of manipulation.</CyberText>
+            <CyberText variant="label">WHAT LOOKS UNUSUAL?</CyberText>
+            {visualReview ? <>
+              <CyberText variant="body">{visualReview.label}</CyberText>
+              <CyberText variant="bodySmall">{visualReview.text}</CyberText>
+              <CyberButton label={showChecks ? 'Hide feature checks' : 'View all feature checks'} variant="secondary"
+                onPress={() => setShowChecks(value => !value)} />
+              {showChecks && visualReview.findings.map((finding, index) => <View key={finding.category || index}>
+                <CyberText variant="bodySmall">{FEATURE_LABELS[finding.category || ''] || 'Visual detail'} · {
+                  finding.status === 'possible_concern' ? 'Tentative observation'
+                    : finding.status === 'no_clear_concern' ? 'No clear concern' : 'Unable to assess'}</CyberText>
+                <CyberText variant="caption">{finding.observation}</CyberText>
+              </View>)}
+            </> : <>
+              <CyberText variant="bodySmall">{result.featureReview ? 'This saved review uses an older version.'
+                : result.visualReviewUnavailable ? 'The visual review was unavailable during this scan.'
+                  : 'This image has no completed visual review yet.'}</CyberText>
+              <CyberButton label={result.featureReview ? 'Run updated visual check'
+                : result.visualReviewUnavailable ? 'Retry visual review' : 'Check unusual details'} variant="secondary"
+                onPress={() => refresh('features')} disabled={!!operation} loading={operation === 'features'} />
+              <CyberText variant="caption">No additional scan credit is used.</CyberText>
+            </>}
+            <CyberText variant="caption">AI observations are unverified. The visual review is separate from the classification.</CyberText>
           </GlassCard>
+          <CyberButton label="Rate this report" variant="secondary" onPress={() => router.push('/feedback')} />
         </>}
-        <GlassCard style={styles.card}>
-          <CyberText variant="label">NOT AVAILABLE IN THE CURRENT SYSTEM</CyberText>
-          <CyberText variant="bodySmall">Object detection and detailed manipulation indicators are not provided by the current model. Feedback submission is not integrated.{OFFLINE_MODE ? ' PDF export requires a saved backend scan.' : ''}</CyberText>
-        </GlassCard>
-        {!!error && <CyberText variant="caption">{error}</CyberText>}
+        {!!error && <View accessibilityLiveRegion="polite"><CyberText variant="bodySmall" color={Colors.fake}>{error}</CyberText></View>}
         {!OFFLINE_MODE && <ExportReportButton key={result.id} scanId={result.id} />}
-        {!OFFLINE_MODE && <CyberButton label={refreshing ? 'Refreshing…' : 'Refresh result'} disabled={refreshing} onPress={refresh} variant="secondary" />}
+        {!OFFLINE_MODE && <CyberButton label={operation === 'refresh' ? 'Refreshing…' : 'Refresh result'} disabled={!!operation} onPress={() => refresh()} variant="secondary" />}
         <CyberButton label={OFFLINE_MODE ? 'Test another response' : 'Scan another image'} onPress={() => router.replace('/(tabs)/scan')} />
         <CyberButton label="Back to history" variant="secondary" onPress={() => router.replace('/(tabs)/history')} />
       </ScrollView>

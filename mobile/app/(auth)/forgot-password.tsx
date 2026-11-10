@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassCard from '../../components/ui/GlassCard';
 import CyberButton from '../../components/ui/CyberButton';
 import CyberText from '../../components/ui/CyberText';
-import ScanGrid from '../../components/ui/ScanGrid';
 import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import Typography from '../../constants/Typography';
+import { OFFLINE_MODE } from '../../services/api/config';
 import { passwordResetService } from '../../services/auth/passwordResetService';
 
 /** Password reset request UI. Email delivery requires a real auth provider. */
@@ -20,6 +19,11 @@ export default function ForgotPasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isComplete, setIsComplete] = useState(false);
+  const pageOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(pageOpacity, { toValue: 1, duration: 320, useNativeDriver: true }).start();
+  }, [pageOpacity]);
 
   const requestReset = async () => {
     setError(null);
@@ -36,25 +40,23 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient colors={['#05070D', '#0B0F1A', '#05070D']} style={StyleSheet.absoluteFill} />
-      <ScanGrid animated={false} />
+    <Animated.View style={[styles.container, { opacity: pageOpacity }]}>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back"><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity>
-            <View style={styles.icon}><Ionicons name={isComplete ? 'information-circle-outline' : 'key-outline'} size={36} color={isComplete ? Colors.severityMedium : Colors.cyan} /></View>
-            <View style={styles.heading}><CyberText variant="h3" align="center">{isComplete ? 'Reset delivery unavailable' : 'Forgot your password?'}</CyberText><CyberText variant="bodySmall" align="center">{isComplete ? 'This prototype does not have an email or authentication provider configured.' : 'Enter your email to begin a secure password reset.'}</CyberText></View>
+            <View style={styles.icon}><Image source={require('../../assets/AuthentiScan-Logo.png')} style={styles.brandLogo} accessibilityLabel="AuthentiScan logo" /></View>
+            <View style={styles.heading}><CyberText variant="h3" align="center">{isComplete ? OFFLINE_MODE ? 'Reset delivery unavailable' : 'Check your email' : 'Forgot your password?'}</CyberText><CyberText variant="bodySmall" align="center">{isComplete ? OFFLINE_MODE ? 'Email delivery is available in connected mode.' : 'If an account exists, a password reset link will be sent.' : 'Enter your email to begin a secure password reset.'}</CyberText></View>
             {isComplete ? (
               <GlassCard variant="strong" style={styles.card} active>
-                <View style={styles.notice}><Ionicons name="shield-outline" size={20} color={Colors.severityMedium} /><CyberText variant="bodySmall" style={styles.noticeCopy}>No reset email was sent, and no password was changed. A real authentication provider is required to enable the secure reset and new-password steps.</CyberText></View>
+                <View style={styles.notice}><Ionicons name="shield-outline" size={20} color={Colors.severityMedium} /><CyberText variant="bodySmall" style={styles.noticeCopy}>{OFFLINE_MODE ? 'Connect to AuthentiScan to request a reset.' : 'Open the link in your inbox to choose a new password, then return here to sign in.'}</CyberText></View>
                 <CyberText variant="caption" align="center">REQUESTED ADDRESS: {email.toUpperCase()}</CyberText>
                 <CyberButton label="Return to sign in" onPress={() => router.replace('/(auth)/login')} style={styles.fullButton} />
                 <CyberButton label="Use another email" onPress={() => { setIsComplete(false); setError(null); }} variant="ghost" />
               </GlassCard>
             ) : (
               <GlassCard variant="strong" style={styles.card}>
-                <View style={styles.prototypeBadge}><CyberText variant="caption" color={Colors.severityMedium}>PROTOTYPE FLOW — NO EMAIL DELIVERY</CyberText></View>
+                {OFFLINE_MODE && <View style={styles.prototypeBadge}><CyberText variant="caption" color={Colors.severityMedium}>OFFLINE SAMPLE</CyberText></View>}
                 <View style={styles.inputGroup}>
                   <CyberText variant="label">EMAIL ADDRESS</CyberText>
                   <View style={[styles.inputWrap, isFocused && styles.inputFocused, !!error && styles.inputError]}>
@@ -64,17 +66,17 @@ export default function ForgotPasswordScreen() {
                 </View>
                 {error && <View style={styles.error}><Ionicons name="alert-circle-outline" size={17} color={Colors.fake} /><CyberText variant="bodySmall" color={Colors.fake} style={styles.errorText}>{error}</CyberText></View>}
                 <CyberButton label="Continue" onPress={requestReset} loading={isSubmitting} disabled={isSubmitting} style={styles.fullButton} />
-                <CyberText variant="caption" align="center">A provider-backed version will send a reset link and then allow a new password with strength and visibility controls.</CyberText>
+                <CyberText variant="caption" align="center">Check your spam folder if you do not see the reset email.</CyberText>
               </GlassCard>
             )}
             {!isComplete && <TouchableOpacity onPress={() => router.replace('/(auth)/login')} accessibilityRole="button" accessibilityLabel="Return to sign in"><CyberText variant="bodySmall" align="center" color={Colors.cyan}>Back to sign in</CyberText></TouchableOpacity>}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgPrimary }, safeArea: { flex: 1 }, keyboard: { flex: 1 }, content: { flexGrow: 1, alignItems: 'stretch', paddingHorizontal: Spacing.screenPadding, paddingBottom: Spacing['3xl'], gap: Spacing.lg }, backButton: { width: 44, height: 48, justifyContent: 'center' }, icon: { alignSelf: 'center', width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.glassBorderCyan, marginTop: Spacing.lg }, heading: { alignItems: 'center', gap: Spacing.sm }, card: { gap: Spacing.lg }, prototypeBadge: { alignSelf: 'center', paddingHorizontal: Spacing.sm, paddingVertical: 5, borderRadius: Spacing.chipRadius, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: Colors.severityMedium }, inputGroup: { gap: Spacing.sm }, inputWrap: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Spacing.inputRadius, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.glassBg }, inputFocused: { borderColor: Colors.cyan, backgroundColor: Colors.cyanDim }, inputError: { borderColor: Colors.fake }, input: { flex: 1, color: Colors.textPrimary, fontSize: Typography.size.base, paddingVertical: Spacing.sm }, error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }, errorText: { flex: 1 }, notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.md, borderRadius: Spacing.inputRadius, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: Colors.severityMedium }, noticeCopy: { flex: 1 }, fullButton: { width: '100%' },
+  container: { flex: 1, backgroundColor: Colors.bgPrimary }, safeArea: { flex: 1 }, keyboard: { flex: 1 }, content: { flexGrow: 1, alignItems: 'stretch', paddingHorizontal: Spacing.screenPadding, paddingBottom: Spacing['3xl'], gap: Spacing.lg }, backButton: { width: 44, height: 48, justifyContent: 'center' }, icon: { alignSelf: 'center', width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: Colors.border, marginTop: Spacing.lg }, brandLogo: { width: 72, height: 72, borderRadius: 18 }, heading: { alignItems: 'center', gap: Spacing.sm }, card: { gap: Spacing.lg }, prototypeBadge: { alignSelf: 'center', paddingHorizontal: Spacing.sm, paddingVertical: 5, borderRadius: Spacing.chipRadius, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: Colors.severityMedium }, inputGroup: { gap: Spacing.sm }, inputWrap: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Spacing.inputRadius, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.glassBg }, inputFocused: { borderColor: Colors.cyan, backgroundColor: Colors.cyanDim }, inputError: { borderColor: Colors.fake }, input: { flex: 1, color: Colors.textPrimary, fontSize: Typography.size.base, paddingVertical: Spacing.sm }, error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }, errorText: { flex: 1 }, notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.md, borderRadius: Spacing.inputRadius, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: Colors.severityMedium }, noticeCopy: { flex: 1 }, fullButton: { width: '100%' },
 });

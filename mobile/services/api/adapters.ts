@@ -6,7 +6,8 @@ export function unwrap<T>(response: ApiResponse<T>): T {
 }
 export function mapUser(user: ApiUser): User {
   return { id: String(user.user_id), name: [user.first_name, user.last_name].join(' ').trim(), email: user.email,
-    plan: user.plan?.name.toLowerCase() === 'premium' ? 'premium' : 'free', firstName: user.first_name, lastName: user.last_name,
+    plan: user.plan?.scan_limit === null ? 'premium' : 'free', firstName: user.first_name, lastName: user.last_name,
+    emailVerificationRequired: user.email_verification_required === true && user.email_verified !== true,
     scanLimit: user.plan ? user.plan.scan_limit : 0 };
 }
 export function mapMe(response: MeResponse): User {
@@ -29,7 +30,12 @@ export function mapScan(scan: ApiScan, localImageUri = ''): ScanResult {
   if (analysis && !['authentic', 'ai_generated', 'uncertain'].includes(analysis.verdict)) throw new Error('Unsupported verdict.');
   return {
     id: String(scan.scan_id), imageUri: localImageUri, imagePath: scan.image_url, fileName: scan.original_file_name,
-    status: scan.status, analysisStatus: scan.analysis_status, scannedAt: scan.updated_at,
+    featureReview: scan.feature_review ?? undefined, localization: scan.localization ?? undefined,
+    sceneAnalysis: scan.scene_analysis ?? undefined, objectDetection: scan.object_detection ?? undefined,
+    visualReviewUnavailable: scan.upload_review?.features === 'unavailable',
+    scanNumber: Number.isSafeInteger(scan.scan_number) ? scan.scan_number : undefined,
+    usesSixtyPercentRule: analysis?.decision_rule === 'manuscript_min_score_v1' && analysis.minimum_class_score === .6,
+    status: scan.status, analysisStatus: scan.analysis_status, scannedAt: scan.created_at || scan.updated_at,
     creditStatus: scan.credit_status,
     hasAnalysis: !!analysis, verdict: analysis?.verdict ?? 'uncertain', confidence: analysis ? percentage(analysis.confidence_score) : 0,
     authenticScore: analysis ? percentage(analysis.authentic_score) : null, aiGeneratedScore: analysis ? percentage(analysis.ai_generated_score) : null,

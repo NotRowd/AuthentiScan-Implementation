@@ -46,22 +46,28 @@ const guestNames = screens(navigation()).map(s => s.name);
 assert.ok(guestNames.includes('(auth)')); assert.ok(guestNames.includes('index')); assert.ok(!guestNames.includes('(tabs)'));
 auth = { isLoading: false, isAuthenticated: true };
 const signedScreens = screens(navigation()), signedNames = signedScreens.map(s => s.name);
-assert.ok(!signedNames.includes('(auth)')); assert.ok(!signedNames.includes('index'));
+assert.ok(!signedNames.includes('(auth)'));
+assert.ok(signedNames.includes('index'), 'Root QR route stays available with a saved session');
+auth = { isLoading: false, isAuthenticated: true, user: { emailVerificationRequired: true } };
+const unverifiedNames = screens(navigation()).map(s => s.name);
+assert.ok(unverifiedNames.includes('index'));
+assert.ok(unverifiedNames.includes('verify-email'));
+assert.ok(!unverifiedNames.includes('(tabs)'));
+auth = { isLoading: false, isAuthenticated: true };
 assert.equal(signedScreens.find(s => s.name === '(tabs)').options.gestureEnabled, false);
 assert.ok(signedNames.includes('(public)'), 'Shared pricing/info pages remain available');
 assert.notEqual(signedScreens.find(s => s.name === 'result').options?.gestureEnabled, false);
 assert.notEqual(signedScreens.find(s => s.name === 'edit-profile').options?.gestureEnabled, false);
 assert.equal(Home().type, Redirect); assert.equal(Home().props.href, '/(tabs)/dashboard');
 const router = StackRouter({});
-const initial = router.getInitialState({ routeNames: guestNames, routeParamList: {}, routeGetIdList: {} });
-const before = { ...initial, index: 2, routes: [
+const before = { stale: false, type: 'stack', key: 'root', routeKeySeq: 3, routeNames: guestNames, index: 2, routes: [
   { key: 'public-before-login', name: '(public)' },
   { key: 'old-login', name: '(auth)' },
   { key: 'dashboard', name: '(tabs)' },
 ] };
-const after = router.getStateForRouteNamesChange(before, { routeNames: signedNames, routeParamList: {}, routeKeyChanges: [] });
-assert.ok(after.routes.every(r => r.name !== '(auth)' && r.name !== 'index'));
-const loggedOut = router.getStateForRouteNamesChange(after, { routeNames: guestNames, routeParamList: {}, routeKeyChanges: [] });
+const after = router.getStateForDeclaredRoutes(before, signedNames);
+assert.ok(after.routes.every(r => r.name !== '(auth)'));
+const loggedOut = router.getStateForDeclaredRoutes(after, guestNames);
 assert.ok(loggedOut.routes.every(r => !['(tabs)', 'result', 'feedback', 'edit-profile'].includes(r.name)));
 auth = { isLoading: false, isAuthenticated: false };
 assert.notEqual(Home().type, Redirect, 'Explicit logout restores guest Home');
