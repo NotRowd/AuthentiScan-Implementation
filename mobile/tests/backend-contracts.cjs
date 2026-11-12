@@ -369,6 +369,24 @@ async function main() {
     assert.equal(await confirmCheckout('order', controller.signal, 5, read, async () => { refreshes++; }), false);
     assert.equal(refreshes, 2);
   });
+  await test('provider results preserve uncertainty, null binary scores and saved heatmap metadata', async () => {
+    const {mapScan} = require('../services/api/adapters.ts');
+    const scan = raw('authentic');
+    scan.analysis = {...scan.analysis,provider:'truthscan',verdict:'uncertain',confidence_score:.93,
+      authentic_score:null,ai_generated_score:null,decision_rule:'truthscan_label_confidence_60_v1',
+      readable_explanation:'Possible editing; classification is uncertain.'};
+    scan.provider_review={provider:'truthscan',status:'ready',text:'Saved observation.',indicators:[]};
+    scan.localization={provider:'truthscan',status:'available',scope:'provider_heatmap'};
+    const mapped=mapScan(scan);
+    assert.equal(mapped.analysisProvider,'truthscan');
+    assert.equal(mapped.verdict,'uncertain');
+    assert.equal(mapped.confidence,93);
+    assert.equal(mapped.authenticScore,null);
+    assert.equal(mapped.aiGeneratedScore,null);
+    assert.equal(mapped.providerReview.text,'Saved observation.');
+    assert.equal(mapped.localization.scope,'provider_heatmap');
+    assert.equal(mapped.usesSixtyPercentRule,false);
+  });
   console.log(passed + ' backend contract tests passed. Fetch and storage were mocked; no real accounts created.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

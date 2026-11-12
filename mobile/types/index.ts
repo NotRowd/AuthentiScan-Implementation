@@ -27,6 +27,8 @@ export type GradCamResult = {
 };
 
 export type ScanResult = {
+  analysisProvider?: string;
+  providerReview?: import('../services/api/contracts').ApiScan['provider_review'];
   scanNumber?: number;
   usesSixtyPercentRule?: boolean;
   sceneAnalysis?: import('../services/api/contracts').ApiScan['scene_analysis'];

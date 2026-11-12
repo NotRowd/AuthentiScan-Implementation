@@ -14,10 +14,13 @@ export type ApiFeatureReview = {
 export type ApiObjectDetection = { status: string; model_version?: string; objects?: { label: string; score: number }[] };
 export type ApiAnalysis = {
   decision_rule?: string; minimum_class_score?: number;
-  verdict: ApiVerdict; confidence_score: number; authentic_score: number; ai_generated_score: number;
+  provider?: string; provider_label?: string; provider_label_confidence?: number;
+  minimum_label_confidence?: number;
+  verdict: ApiVerdict; confidence_score: number; authentic_score: number | null; ai_generated_score: number | null;
   readable_explanation: string; heatmap_url: string | null; model_version: string; analyzed_at: string;
 };
 export type ApiScan = {
+  provider_review?: {provider: string; status: string; text: string; indicators: string[]};
   feature_review?: ApiFeatureReview;
   scene_analysis?: { input_sha256?: string; image_type?: string; observation?: string };
   upload_review?: { features?: string };

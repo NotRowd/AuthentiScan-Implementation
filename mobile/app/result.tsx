@@ -77,10 +77,11 @@ export default function ResultScreen() {
           <GlassCard style={styles.card}>
             <CyberText variant="label">IMAGE CLASSIFICATION</CyberText>
             <VerdictChip verdict={result.verdict} />
-            <CyberText variant="h4">Confidence: {result.confidence}%</CyberText>
-            <CyberText variant="body">Authentic: {result.authenticScore}%</CyberText>
-            <CyberText variant="body">AI-generated: {result.aiGeneratedScore}%</CyberText>
-            {result.verdict === 'uncertain' && <CyberText variant="caption">{result.usesSixtyPercentRule
+            <CyberText variant="h4">{result.analysisProvider === 'truthscan' ? 'Provider label confidence' : 'Confidence'}: {result.confidence}%</CyberText>
+            {result.authenticScore !== null && <CyberText variant="body">Authentic: {result.authenticScore}%</CyberText>}
+            {result.aiGeneratedScore !== null && <CyberText variant="body">AI-generated: {result.aiGeneratedScore}%</CyberText>}
+            {result.analysisProvider === 'truthscan' && <CyberText variant="bodySmall">{result.summary}</CyberText>}
+            {result.verdict === 'uncertain' && result.analysisProvider !== 'truthscan' && <CyberText variant="caption">{result.usesSixtyPercentRule
               ? 'Uncertain means both saved class scores were below 60%.'
               : 'The saved decision rule did not confidently select either class.'}</CyberText>}
             <CyberText variant="caption">Scores are model estimates, not proof.{OFFLINE_MODE ? ' These values are mock fixtures.' : ''}</CyberText>
@@ -101,7 +102,10 @@ export default function ResultScreen() {
           </GlassCard>
           <GlassCard style={styles.card}>
             <CyberText variant="label">WHAT LOOKS UNUSUAL?</CyberText>
-            {visualReview ? <>
+            {result.analysisProvider === 'truthscan' ? <>
+              <CyberText variant="bodySmall">{result.providerReview?.text || 'No written provider analysis is available for this saved result.'}</CyberText>
+              <CyberText variant="caption">TruthScan visual analysis. Automated observations may be incorrect.</CyberText>
+            </> : visualReview ? <>
               <CyberText variant="body">{visualReview.label}</CyberText>
               <CyberText variant="bodySmall">{visualReview.text}</CyberText>
               <CyberButton label={showChecks ? 'Hide feature checks' : 'View all feature checks'} variant="secondary"

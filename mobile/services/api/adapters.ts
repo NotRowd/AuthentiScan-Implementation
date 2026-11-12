@@ -30,6 +30,8 @@ export function mapScan(scan: ApiScan, localImageUri = ''): ScanResult {
   if (analysis && !['authentic', 'ai_generated', 'uncertain'].includes(analysis.verdict)) throw new Error('Unsupported verdict.');
   return {
     id: String(scan.scan_id), imageUri: localImageUri, imagePath: scan.image_url, fileName: scan.original_file_name,
+    analysisProvider: analysis?.provider,
+    providerReview: scan.provider_review,
     featureReview: scan.feature_review ?? undefined, localization: scan.localization ?? undefined,
     sceneAnalysis: scan.scene_analysis ?? undefined, objectDetection: scan.object_detection ?? undefined,
     visualReviewUnavailable: scan.upload_review?.features === 'unavailable',
@@ -38,7 +40,8 @@ export function mapScan(scan: ApiScan, localImageUri = ''): ScanResult {
     status: scan.status, analysisStatus: scan.analysis_status, scannedAt: scan.created_at || scan.updated_at,
     creditStatus: scan.credit_status,
     hasAnalysis: !!analysis, verdict: analysis?.verdict ?? 'uncertain', confidence: analysis ? percentage(analysis.confidence_score) : 0,
-    authenticScore: analysis ? percentage(analysis.authentic_score) : null, aiGeneratedScore: analysis ? percentage(analysis.ai_generated_score) : null,
+    authenticScore: analysis?.authentic_score != null ? percentage(analysis.authentic_score) : null,
+    aiGeneratedScore: analysis?.ai_generated_score != null ? percentage(analysis.ai_generated_score) : null,
     summary: analysis?.readable_explanation ?? scan.analysis_error?.message ?? (scan.status === 'failed' ? 'Image saved, but analysis failed.' : 'Image saved; analysis is not complete.'),
     modelVersion: analysis?.model_version ?? null, manipulationIndicators: [],
     gradCam: analysis?.heatmap_url ? { heatmapUri: analysis.heatmap_url, highlightedRegions: [] } : undefined,
