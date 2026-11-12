@@ -17,11 +17,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider><AuthProvider>
       <View style={{ flex: 1, backgroundColor: '#F6FAFD' }}>
-      <SafeAreaView edges={['top']} style={{ backgroundColor: '#EAF6FF' }}>
+      {OFFLINE_MODE && <SafeAreaView edges={['top']} style={{ backgroundColor: '#EAF6FF' }}>
         <Text style={{ color: '#176FB7', textAlign: 'center', padding: 6, fontSize: 11 }}>
-          {OFFLINE_MODE ? 'OFFLINE TEST MODE — no backend or real AI. Use test details only; passwords are not verified.' : 'BACKEND MODE — uploads are saved to your account. AI availability depends on the server.'}
+          OFFLINE TEST MODE — no backend or real AI. Use test details only; passwords are not verified.
         </Text>
-      </SafeAreaView>
+      </SafeAreaView>}
       <StatusBar style="dark" />
       <Navigation />
       </View>

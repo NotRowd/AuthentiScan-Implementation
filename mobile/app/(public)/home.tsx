@@ -117,15 +117,6 @@ function GuestHomeScreen() {
               <Image source={require('../../assets/AuthentiScan-Logo.png')} style={styles.logo} accessibilityLabel="AuthentiScan logo" />
               <Text style={styles.brandName}>AuthentiScan</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/login')}
-              style={styles.loginButton}
-              accessibilityRole="button"
-              accessibilityLabel="Log in"
-            >
-              <Text style={styles.loginText}>Log in</Text>
-              <Ionicons name="arrow-forward" size={16} color={BRAND.deepBlue} />
-            </TouchableOpacity>
           </View>
 
           <Animated.View
@@ -249,7 +240,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: BRAND.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: BRAND.border,
@@ -258,8 +248,6 @@ const styles = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'center', gap: 9 },
   logo: { width: 36, height: 36, borderRadius: 10 },
   brandName: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5, color: BRAND.ink },
-  loginButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 13, borderRadius: 13, backgroundColor: BRAND.paleBlue },
-  loginText: { fontSize: 14, fontWeight: '700', color: BRAND.deepBlue },
   hero: { paddingHorizontal: 22, paddingTop: 31, paddingBottom: 32, alignItems: 'center' },
   eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E5F4FF' },
   eyebrowDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: BRAND.blue },
