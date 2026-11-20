@@ -2,7 +2,7 @@
 
 ## Modes and account safety
 
-The app defaults to offline unless EXPO_PUBLIC_API_MODE=backend is explicitly set.
+The app defaults to the deployed AuthentiScan HTTPS backend. Set EXPO_PUBLIC_API_MODE=offline only for labelled offline samples.
 This PC has a git-ignored .env.local configured for backend mode. Restart Expo after
 changing it. Real requests never fall back to simulated predictions.
 Offline accounts/history stay in their separate local storage and are NOT uploaded.
@@ -66,7 +66,7 @@ do not start duplicate instances or kill unrelated processes.
 
 ## Manual Android acceptance checklist
 
-1. Confirm BACKEND MODE banner and no mock-response selector.
+1. Confirm there is no OFFLINE TEST MODE banner and no mock-response selector. Connected mode intentionally has no backend banner.
 2. Sign in with a web account; wrong passwords must fail.
 3. Upload a supported test image (<10 MB) and confirm the saved scan ID appears
    through the same account on the web.
@@ -304,3 +304,44 @@ the screen. No download, PDF generation, database or credit logic changed.
 Checks passed: `node tests/report-feedback.cjs`, the 10 existing PDF export
 tests, and TypeScript. Feedback tests mock native alerts and still require an
 iPhone reload/retest for visual confirmation of the new popup.
+
+
+## Mobile appearance — 2026-11-20
+
+The native app supports Light, deep navy Dark, and System. Choose Appearance
+in Settings or above the sign-in/registration forms. The choice is stored locally
+under `authentiscan.appearance.v1`; it is independent of the website preference
+and remains separate from authentication. System follows device appearance
+changes. App content waits for the stored preference before mounting. If device
+storage cannot save a new choice, the session changes immediately and the selector
+shows a retry message.
+
+ThemeContext supplies semantic colors and memoized styles to screens, cards,
+buttons, fields, status chips, navigation and the status bar. Original images,
+heatmaps, PDF bytes, API/authentication/payment/scan services are unchanged.
+`expo-system-ui` matches SDK 58; app config and the existing Android resource use
+automatic appearance for future native builds. Reload Expo Go to test. Previously
+installed APKs require a new build and installation to include these changes.
+
+Validation: `npx.cmd tsc --noEmit`, `node tests/theme-ui.cjs`, navigation, mobile
+parity, scan-resume, feedback/export and PDF export tests; iOS/Android bundle
+exports in `output/mobile-theme-20261120/`. Physical phone acceptance remains
+with the user. This change does not publish an app or rebuild the APK.
+
+
+## Original mobile UI restored — 2026-11-20
+
+The compact Option B redesign was reverted at the user's request. All 80
+pre-redesign source/test/package files match the saved baseline exactly. App
+configuration differs only in release version 1.0.2 and Android version code 3
+so the restored UI can install over 1.0.1. The original welcome page ("A clearer
+look at what's in an image"), main screens, forms and controls are restored.
+The earlier Light/Dark/System theme remains. No API or account data changed.
+
+Signed replacement APK: https://authentiscan.52-65-43-68.sslip.io/downloads/AuthentiScan-1.0.2.apk
+SHA-256: `c3d220d1ec18c9ca8194b2d9344004ee287a28f9b3ccd1ca2672d60e326e95bf`.
+
+Verified TypeScript, existing theme/contrast, navigation/session and scan resume
+checks, source backup hashes, release signing, and original welcome screen on
+the Android emulator. Expo Go uses the restored source on full reload.
+Rollback and validation records: `output/mobile-ui-restore-20261120/`.

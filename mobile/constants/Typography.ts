@@ -4,17 +4,16 @@ import { TextStyle } from 'react-native';
  * AuthentiScan Typography Scale
  */
 const Typography = {
-  // --- Font families (system fallback used since custom fonts need expo-font) ---
-  // To upgrade: load 'SpaceGrotesk' or 'Inter' via expo-font in _layout.tsx
+  // Bundled Poppins faces are loaded once in app/_layout.tsx.
   fontFamily: {
-    sans: 'System',
+    sans: 'Poppins-Regular',
     mono: 'Courier',
   },
 
   // --- Font sizes ---
   size: {
-    xs: 10,
-    sm: 12,
+    xs: 11,
+    sm: 13,
     base: 14,
     md: 16,
     lg: 18,
@@ -40,7 +39,7 @@ const Typography = {
     normal: 0,
     wide: 0.5,
     wider: 1.5,
-    widest: 3,
+    widest: 1.4,
   },
 
   // --- Line heights ---
@@ -52,3 +51,8 @@ const Typography = {
 } as const;
 
 export default Typography;
+
+export function poppinsFamily(weight?: TextStyle['fontWeight']): string {
+  const value = weight === 'bold' ? 700 : Number(weight || 400);
+  return value >= 800 ? 'Poppins-ExtraBold' : value >= 700 ? 'Poppins-Bold' : value >= 600 ? 'Poppins-SemiBold' : value >= 500 ? 'Poppins-Medium' : 'Poppins-Regular';
+}

@@ -1,14 +1,23 @@
 # AuthentiScan — team handoff
 
 **Start with [TEAM-SETUP.md](TEAM-SETUP.md).** This branch contains the current
-source snapshot for shared web/mobile development, not a cloud deployment.
+source snapshot for shared web/mobile development. Saving this branch does not
+deploy it or merge it into `main`.
+
+The November 20, 2026 checkpoint contains the current web/backend source and
+the restored original mobile UI. The compact mobile Option B redesign was
+reverted; the earlier Light/Dark/System themes remain. Android release 1.0.2
+(version code 3) installs over 1.0.1. See [mobile/ANDROID-APK.md](mobile/ANDROID-APK.md)
+for the signed download and build instructions.
 
 | Folder | Role |
 | --- | --- |
 | `web-backend/` | Current React website + Express/Firebase backend; start here for web work |
-| `mobile/` | Current Expo app; offline mode or the legacy API, not yet migrated to Firebase |
-| `ai-service/` | Current Python classification and Grad-CAM service + training source |
-| `legacy-backend/` | MySQL/JWT API still used by mobile |
+| `mobile/` | Current Expo app; shares accounts and scans with the AWS HTTPS API |
+| `ai-runtime/`, `ai-scene/`, `ai-localization/` | Supporting AI runtime, integration and test source; excludes weights, datasets and vendor environments |
+| `deployment/` | Deployment templates, checks and AWS status notes; excludes prepared bundles and secrets |
+| `ai-service/` | Historical Python classifier/Grad-CAM and training source |
+| `legacy-backend/` | Historical MySQL/JWT API retained for reference |
 | `legacy-web/` | Latest pre-Firebase website, retained for reference |
 
 Root `src/`, `public/`, and root npm configuration below are the original
@@ -18,7 +27,10 @@ Run web commands inside `web-backend/`.
 No private credentials, user accounts/images, database dumps, model weights or
 training datasets are included. Ask Kent privately for approved model access;
 use emulators for web development without cloud credentials. Do not enable billing.
-Loyd's classifier-training handoff is separate and AI work remains paused.
+Training data and model binaries are not part of this source checkpoint.
+Temporary previews, build caches, database exports and private signing keys are
+excluded. Deployment preparation scripts retain original workspace paths;
+review those paths before using them in a different checkout.
 
 Create feature branches from `team-handoff-2026-10-03` and open pull requests
 back to that branch until the team reviews and merges it into `main`.

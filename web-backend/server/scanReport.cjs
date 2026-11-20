@@ -1,10 +1,8 @@
-const path = require('path');
 const { inflateSync } = require('zlib');
-const PDFDocument = require('pdfkit');
-const FONT = path.join(path.dirname(require.resolve('@fontsource/noto-sans/package.json')), 'files/noto-sans-latin-400-normal.woff');
-const DISCLAIMER = 'Class scores are model estimates, not calibrated probabilities, proof, or overall model accuracy. The decision policy may use a threshold other than 50%. Grad-CAM explains a specified class; it does not identify proven edited areas. Object detection and manipulation segmentation are not included.';
+const DISCLAIMER = 'Class scores are model estimates, not calibrated probabilities, proof, or overall model accuracy. The decision policy may use a threshold other than 50%. Grad-CAM explains a specified class, not proven edited areas. Object detections describe objects, not manipulation. Any separately recorded localization is an estimate that may miss edits or highlight original content; it is not proof of AI generation.';
 
 function scoreForReport(scan) {
+  if(scan?.provider==='truthscan')return ['Provider label confidence',scan.provider_label_confidence];
   if(scan?.verdict==='authentic')return ['Authentic class score',scan.authentic_score];
   if(scan?.verdict==='ai_generated')return ['AI-generated class score',scan.ai_generated_score];
   return ['Highest class score (uncertain)',scan&&Number.isFinite(scan.authentic_score)&&Number.isFinite(scan.ai_generated_score)?Math.max(scan.authentic_score,scan.ai_generated_score):null];
@@ -72,66 +70,8 @@ async function loadReportHeatmap(heatmapPath, { fetchImpl = fetch, baseUrl = pro
   finally { clearTimeout(timeout); }
 }
 
-function buildScanReport(scan, heatmap = null, exportedAt = new Date()) {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({size:'A4', margin:48, font:FONT, bufferPages:true,
-      info:{Title:`AuthentiScan Report ${scan.scan_id}`, Author:'AuthentiScan', Subject:'Saved image analysis report'}});
-    const chunks=[];
-    doc.on('data',chunk=>chunks.push(chunk)); doc.on('error',reject);
-    doc.on('end',()=>resolve(Buffer.concat(chunks)));
-    let escaped = false;
-    // Preserve unsupported filename characters visibly instead of silently losing them.
-    // eslint-disable-next-line no-control-regex -- Strip non-printing control characters from stored filenames.
-    const text = value => Array.from(String(value ?? 'Not available').replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, ' ')).map(c=>{
-      if (c==='\n' || c==='\t' || doc._font.font.hasGlyphForCodePoint(c.codePointAt(0))) return c;
-      escaped=true; return `[U+${c.codePointAt(0).toString(16).toUpperCase()}]`;
-    }).join('');
-    const width = doc.page.width - 96;
-    const heading = label => { doc.moveDown(0.7).fillColor('#172554').fontSize(13).text(label); doc.moveDown(0.3); };
-    const row = (label,value) => { doc.fillColor('#334155').fontSize(10).text(`${label}: ${text(value)}`, {width, lineGap:3}); doc.moveDown(0.35); };
-    try {
-      let decoded=null;
-      if(heatmap && safePng(heatmap)) { try { decoded=doc.openImage(heatmap); } catch { /* An invalid image must not prevent exporting scores. */ } }
-      const analysis = scan.status === 'completed' && scan.result_id ? scan : null;
-      doc.fillColor('#111827').fontSize(24).text('AuthentiScan Analysis Report');
-      doc.moveDown(0.3).fontSize(10).fillColor('#475569').text('A snapshot of an existing saved scan. No new analysis was performed.');
-      heading('Scan details');
-      row('Scan ID',scan.scan_id); row('Original filename',scan.original_file_name);
-      row('Uploaded at',date(scan.created_at)); row('Analyzed at',analysis ? date(scan.analyzed_at) : 'Not available');
-      row('Exported at',date(exportedAt)); row('Scan status',scan.status);
-      row('Model version',analysis?.model_version);
-      heading('Saved AI result');
-      const verdicts={authentic:'Authentic',ai_generated:'AI-generated',uncertain:'Uncertain'};
-      row('Verdict',analysis ? verdicts[scan.verdict] || 'Not available' : 'No completed analysis');
-      const [scoreLabel,scoreValue]=scoreForReport(analysis);
-      row(analysis?scoreLabel:'Class score',percent(scoreValue));
-      row('Authenticity score',percent(analysis?.authentic_score));
-      row('AI-generated score',percent(analysis?.ai_generated_score));
-      row('Grad-CAM',decoded ? 'Included on the visualization page' : 'Unavailable at export time; no image is included');
-      row('Heatmap target',analysis?heatmapTarget(scan):'Not available');
-      if(analysis?.gradcam?.reason)row('Heatmap status',analysis.gradcam.reason.replaceAll('_',' '));
-      if(analysis?.policy_version){
-        row('Decision policy',`${analysis.policy_version}; threshold ${analysis.decision_threshold}; uncertainty +/- ${analysis.uncertainty_margin}`);
-        row('Preprocessing',analysis.preprocessing_version);
-      }
-      heading('Limitations');
-      doc.fontSize(10).fillColor('#334155').text(DISCLAIMER,{width,lineGap:3});
-      if(escaped) { doc.moveDown().fontSize(9).text('Some characters are written as [U+XXXX] Unicode code points because the embedded font does not contain them.'); }
-      if(decoded) {
-        doc.addPage(); doc.fillColor('#111827').fontSize(20).text('Grad-CAM Visualization');
-        doc.moveDown().fontSize(10).fillColor('#334155').text(`Saved scan #${scan.scan_id}. Target: ${heatmapTarget(scan)}.`,{width});
-        doc.image(decoded,48,130,{fit:[width,480],align:'center',valign:'center'});
-        const legend=scan.gradcam?.palette==='blue-green-yellow-v1'?'Blue: low; green: intermediate; yellow: higher relative contribution. Values from about 0.67 to 1 share yellow. Colors are normalized per image and blended 40% over the original.':'This older result did not record its palette or explanation target; do not infer its color meaning.';
-        doc.fontSize(10).text(`${legend} This is not an edited-region mask or proof of manipulation. The saved prediction has not been recalculated.`,48,640,{width,lineGap:3});
-      }
-      const pages=doc.bufferedPageRange();
-      for(let i=0;i<pages.count;i++) {
-        doc.switchToPage(i); const bottom=doc.page.margins.bottom;doc.page.margins.bottom=0;
-        doc.fillColor('#64748b').fontSize(8).text(`AuthentiScan | Scan ${scan.scan_id} | Page ${i+1} of ${pages.count}`,48,doc.page.height-30,{width,align:'center',lineBreak:false});
-        doc.page.margins.bottom=bottom;
-      }
-      doc.end();
-    } catch(error) { doc.destroy(); reject(error); }
-  });
+async function buildScanReport(scan, heatmap = null, exportedAt = new Date(), localizationImage = null, images = {}) {
+  const {renderReport}=require('./report-layout.cjs');
+  return renderReport(scan,{...images,heatmap,exportedAt,localizationImage},{safePng,percent,heatmapTarget});
 }
 module.exports={buildScanReport,loadReportHeatmap,percent,DISCLAIMER,scoreForReport,heatmapTarget};

@@ -1,3 +1,6 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React, { useRef } from 'react';
 import {
   Animated,
@@ -13,12 +16,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassCard from '../../components/ui/GlassCard';
 import CyberText from '../../components/ui/CyberText';
 import ScanGrid from '../../components/ui/ScanGrid';
-import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 
 // ─── Process steps ────────────────────────────────────────────────────────────
 
-const STEPS = [
+const getSteps = (Colors:ColorPalette) => [
   {
     step: '01',
     icon: 'cloud-upload-outline' as const,
@@ -32,7 +34,7 @@ const STEPS = [
     icon: 'scan-outline' as const,
     title: 'AI Scan',
     description:
-      'The current system uses EfficientNet-B0 for image classification. Backend mode requests real analysis; offline mode uses clearly labeled sample results.',
+      'Your image is saved and sent to the connected analysis service. Offline mode uses clearly labelled sample results.',
     color: Colors.cyanAlt,
   },
   {
@@ -48,7 +50,7 @@ const STEPS = [
     icon: 'document-text-outline' as const,
     title: 'Analysis Report',
     description:
-      'Review a Grad-CAM heatmap when supplied. Detailed manipulation indicators and object detection are not supported by the current model.',
+      'Compare your original image with the supplied heatmap, read visual observations, and export the saved PDF report. Highlights are suggestions for review, not exact edited boundaries.',
     color: Colors.textSecondary,
   },
 ] as const;
@@ -63,8 +65,8 @@ const TECH = [
   },
   {
     icon: 'map-outline' as const,
-    title: 'Grad-CAM XAI',
-    desc: 'Highlights image regions that drove the model\'s prediction.',
+    title: 'Suspected edit regions',
+    desc: 'Shows supplied highlights for visual review. Highlights can be incorrect.',
   },
   {
     icon: 'analytics-outline' as const,
@@ -79,12 +81,14 @@ const TECH = [
  * 4-step process visualization with glass cards and cyan accents.
  */
 export default function HowItWorksScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles); const STEPS=getSteps(Colors);
+
   const scrollRef = useRef<ScrollView>(null);
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']}
+        colors={[Colors.bgPrimary, Colors.bgTertiary, Colors.bgPrimary]}
         style={StyleSheet.absoluteFill}
       />
       <ScanGrid animated={false} />
@@ -215,7 +219,7 @@ export default function HowItWorksScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   container: {
     flex: 1,
     backgroundColor: Colors.bgPrimary,

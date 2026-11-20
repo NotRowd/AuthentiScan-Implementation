@@ -1,0 +1,11 @@
+{
+  "repository":"unsloth/Qwen3.5-4B-GGUF",
+  "revision":"e87f176479d0855a907a41277aca2f8ee7a09523",
+  "license":"apache-2.0",
+  "files":[
+    {"name":"Qwen3.5-4B-UD-Q4_K_XL.gguf","bytes":2912109728,"sha256":"b252c5610a42ca82d20fe2a12813e9d069eed89292907e26c783eeb0bc961bc7"},
+    {"name":"mmproj-F16.gguf","bytes":672423616,"sha256":"cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864"}
+  ],
+  "production_enabled":false,
+  "accuracy_validated":false
+}

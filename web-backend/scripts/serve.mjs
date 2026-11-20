@@ -4,8 +4,14 @@ import {createApp} from '../server/app.mjs';
 import {requireLocalEnvironment} from '../local-config.mjs';
 import {db} from '../server/firebase.mjs';
 import {saveSnapshot} from './snapshots.mjs';
+import {startObjectDetector} from './object-detector.mjs';
+import {startLocalization} from './localization-service.mjs';
+import {startScene} from './scene-service.mjs';
 
 requireLocalEnvironment(process.env);
+const stopObjects=await startObjectDetector();
+const stopLocalization=await startLocalization();
+const stopScene=await startScene();
 const web=await createServer();
 const api=createApp().listen(5002,'127.0.0.1');
 await new Promise((resolve,reject)=>{api.once('listening',resolve);api.once('error',reject);});
@@ -16,7 +22,7 @@ let stopping=false,drained=false;
 async function stop() {
   if(stopping)return;stopping=true;
   try{
-    if(!drained){await web.close();await new Promise(r=>api.close(r));await db.terminate();drained=true;}
+    if(!drained){await web.close();await new Promise(r=>api.close(r));stopObjects();stopLocalization();await stopScene();await db.terminate();drained=true;}
     console.log('Saving local Firebase data…');console.log('Verified snapshot: '+await saveSnapshot());
   }
   catch(error){stopping=false;console.error(error.message+' Press Enter to retry.');return;}

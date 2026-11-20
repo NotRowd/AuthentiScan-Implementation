@@ -1,3 +1,5 @@
+import {useTheme} from '../context/ThemeContext';
+import type {ColorPalette} from '../constants/Colors';
 import { useRef, useState } from 'react';
 import { ScrollView, TextInput } from 'react-native';
 import { router } from 'expo-router';
@@ -8,9 +10,11 @@ import { saveToken, sessionRevision } from '../services/api/session';
 import { OFFLINE_MODE } from '../services/api/config';
 import CyberButton from '../components/ui/CyberButton';
 import CyberText from '../components/ui/CyberText';
-import Colors from '../constants/Colors';
+import AccountLayout,{AccountField} from '../components/AccountLayout';
 
 export default function ChangePassword() {
+ const {colors:Colors}=useTheme();
+
   const { user } = useAuthContext();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -43,20 +47,14 @@ export default function ChangePassword() {
       setCurrent(''); setNext(''); setConfirmation(''); locked.current = false; setBusy(false);
     }
   }
-  return <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bgPrimary }}>
-    <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }} keyboardShouldPersistTaps="handled">
-      <CyberText variant="h3">Change password</CyberText>
-      {([
-        ['Current password', current, setCurrent, 'current-password'],
-        ['New password', next, setNext, 'new-password'],
-        ['Confirm new password', confirmation, setConfirmation, 'new-password'],
-      ] as const).map(([label, value, setter, autoComplete]) => <TextInput key={label} accessibilityLabel={label}
-        placeholder={label} placeholderTextColor={Colors.textMuted} value={value} onChangeText={setter}
-        autoComplete={autoComplete} secureTextEntry editable={!busy}
-        style={{ padding: 14, backgroundColor: Colors.bgSecondary, color: Colors.textPrimary, borderRadius: 8 }} />)}
-      {!!message && <CyberText variant="bodySmall">{message}</CyberText>}
-      <CyberButton label="Update password" onPress={submit} disabled={busy || OFFLINE_MODE} loading={busy} />
-      <CyberButton label="Back" variant="secondary" disabled={busy} onPress={() => router.back()} />
-    </ScrollView>
-  </SafeAreaView>;
+  return <AccountLayout title="Change password" subtitle="Use a different password with at least 8 characters.">
+    {([
+      ['Current password',current,setCurrent,'current-password'],
+      ['New password',next,setNext,'new-password'],
+      ['Confirm new password',confirmation,setConfirmation,'new-password'],
+    ] as const).map(([label,value,setter,autoComplete])=><AccountField key={label} label={label} value={value} onChangeText={setter} autoComplete={autoComplete} password editable={!busy}/>)}
+    {!!message&&<CyberText variant="bodySmall">{message}</CyberText>}
+    <CyberButton label={busy?'Updating password…':'Update password'} onPress={submit} disabled={busy||OFFLINE_MODE} loading={busy}/>
+    <CyberButton label="Back" variant="secondary" disabled={busy} onPress={()=>router.back()}/>
+  </AccountLayout>;
 }

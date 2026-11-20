@@ -18,7 +18,20 @@ export function normalizeAnalysis(data) {
   if(!Number.isFinite(data.decision_threshold)||data.decision_threshold<=0||data.decision_threshold>=1||
      !Number.isFinite(data.uncertainty_margin)||data.uncertainty_margin<0||data.uncertainty_margin>=0.5)throw new Error('Invalid decision policy.');
   const distance=Math.abs(data.authentic_score-data.decision_threshold);
-  const expected=distance<=data.uncertainty_margin+1e-12?'uncertain':data.authentic_score>=data.decision_threshold?'authentic':'ai_generated';
+  const rule=data.decision_rule??'threshold_band_v1';
+  if(!['threshold_band_v1','manuscript_min_score_v1'].includes(rule))throw new Error('Unknown decision rule.');
+  let expected;
+  if(rule==='manuscript_min_score_v1'){
+    if(data.minimum_class_score!==.6||data.decision_threshold!==.5||data.uncertainty_margin!==.1)
+      throw new Error('Invalid manuscript policy.');
+    if(Math.abs(data.ai_generated_score-(1-data.authentic_score))>1e-12)throw new Error('Inconsistent manuscript class scores.');
+    expected=data.authentic_score>=.6?'authentic':data.ai_generated_score>=.6?'ai_generated':'uncertain';
+    Object.assign(result,{decision_rule:rule,minimum_class_score:.6});
+  }else{
+    if(data.minimum_class_score!==undefined&&data.minimum_class_score!==null)throw new Error('Unexpected minimum class score.');
+    expected=distance<=data.uncertainty_margin+1e-12?'uncertain':data.authentic_score>=data.decision_threshold?'authentic':'ai_generated';
+    if(data.decision_rule)result.decision_rule=rule;
+  }
   if(data.verdict!==expected)throw new Error('Verdict does not match policy.');
   for(const key of ['policy_version','preprocessing_version'])
     if(typeof data[key]!=='string'||!data[key].trim()||data[key].length>200)throw new Error('Invalid version.');

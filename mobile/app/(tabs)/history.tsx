@@ -1,3 +1,6 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, Keyboard, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
@@ -9,7 +12,6 @@ import CyberButton from '../../components/ui/CyberButton';
 import CyberText from '../../components/ui/CyberText';
 import { VerdictChip } from '../../components/ui/StatusChip';
 import ScanGrid from '../../components/ui/ScanGrid';
-import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import { setLatestScanResult } from '../../services/scan/scanSession';
 import { scanHistoryService } from '../../services/scan/scanHistoryService';
@@ -22,6 +24,8 @@ import { HISTORY_STATUSES, type HistoryFilters, type HistoryStatus } from '../..
 type SectionBox = { y: number; height: number };
 
 export default function HistoryScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const { user } = useAuth();
   const [scans, setScans] = useState<ScanResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,7 +134,7 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[Colors.bgPrimary, Colors.bgTertiary, Colors.bgPrimary]} style={StyleSheet.absoluteFill} />
       <ScanGrid animated={false} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={80}>
@@ -188,13 +192,13 @@ export default function HistoryScreen() {
                     <ScanImage uri={scan.imageUri || scan.imagePath} style={styles.thumbnail} label={`${scan.fileName} thumbnail`} />
                     <View style={styles.scanDetails}>
                       <CyberText variant="body" numberOfLines={1} style={styles.fileName}>{scan.fileName}</CyberText>
-                      <View style={styles.resultLine}>{scan.hasAnalysis ? <VerdictChip verdict={scan.verdict} /> : <View style={[styles.statusBadge, { backgroundColor: failed ? Colors.fakeDim : processing ? '#FFF3DE' : Colors.bgTertiary }]}><View style={[styles.statusDot, { backgroundColor: statusColor }]} /><CyberText variant="caption" color={statusColor}>{scanStatus}</CyberText></View>}</View>
+                      <View style={styles.resultLine}>{scan.hasAnalysis ? <VerdictChip verdict={scan.verdict} /> : <View style={[styles.statusBadge, { backgroundColor: failed ? Colors.fakeDim : processing ? Colors.warningDim : Colors.bgTertiary }]}><View style={[styles.statusDot, { backgroundColor: statusColor }]} /><CyberText variant="caption" color={statusColor}>{scanStatus}</CyberText></View>}</View>
                       <View style={styles.metaLine}><Ionicons name="calendar-outline" size={13} color={Colors.textMuted} /><CyberText variant="caption" color={Colors.textSecondary} numberOfLines={1}>{scan.scanNumber ? `#${scan.scanNumber} · ` : ''}{formatDate(scan.scannedAt)}</CyberText></View>
                       {scan.creditStatus === 'not_charged' && <CyberText variant="caption" color={Colors.textMuted}>No scan credit used</CyberText>}
                     </View>
                     <View style={styles.confidenceBlock}>
                       <CyberText variant="h4" color={scan.hasAnalysis ? (scan.verdict === 'authentic' ? Colors.authentic : scan.verdict === 'ai_generated' ? Colors.fake : Colors.severityMedium) : Colors.textMuted}>{scan.hasAnalysis ? `${scan.confidence}%` : '—'}</CyberText>
-                      <CyberText variant="caption" color={Colors.textMuted}>confidence</CyberText>
+                      <CyberText variant="caption" color={Colors.textMuted}>{scan.analysisProvider==='truthscan'?(scan.analysis?.provider_label==='Digitally Edited'?'editing confidence':'label confidence'):'confidence'}</CyberText>
                       <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
                     </View>
                   </GlassCard>
@@ -215,12 +219,12 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   root: { flex: 1, backgroundColor: Colors.bgPrimary },
   safeArea: { flex: 1 },
   content: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 16, gap: 17 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 14, paddingBottom: 2 },
-  headerIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border },
+  headerIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border },
   headerCopy: { flex: 1, gap: 3 },
   title: { marginTop: 1 },
   filterSection: { width: '100%' },
@@ -229,12 +233,12 @@ const styles = StyleSheet.create({
   searchField: { minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgTertiary },
   search: { flex: 1, minWidth: 0, paddingVertical: 9, color: Colors.textPrimary, fontSize: 14 },
   statuses: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  filterChip: { minHeight: 34, justifyContent: 'center', paddingHorizontal: 11, borderRadius: 18, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.white },
+  filterChip: { minHeight: 34, justifyContent: 'center', paddingHorizontal: 11, borderRadius: 18, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgSecondary },
   selectedChip: { borderColor: Colors.glassBorderCyan, backgroundColor: Colors.cyanDim },
   applyButton: { minHeight: 42 },
   listSection: { gap: 11 },
   listHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  refreshButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border },
+  refreshButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border },
   scanList: { gap: 9 },
   scanCard: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 11 },
   thumbnail: { width: 64, height: 76, borderRadius: 12, backgroundColor: Colors.bgTertiary },

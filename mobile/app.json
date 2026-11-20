@@ -2,10 +2,10 @@
   "expo": {
     "name": "AuthentiScan",
     "slug": "authentiscan",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/AuthentiScan-Logo.png",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#F6FAFD",
     "splash": {
       "image": "./assets/AuthentiScan-Logo.png",
@@ -19,12 +19,11 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#F6FAFD",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/AuthentiScan-Logo.png"
       },
       "package": "com.authentiscan.app",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 3
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,7 +39,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-system-ui"
     ],
     "experiments": {
       "typedRoutes": true

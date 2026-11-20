@@ -1,21 +1,25 @@
-# Cloud accounts and records without enabling billing
+# Local cloud-hybrid development setup (historical; not public hosting)
 
-## Deployment constraint: strict no billing
+> **Status update (2026-11-04):** This file documents the local development
+> workflow only. Its former strict no-billing rule is superseded by the current
+> public-deployment plan in `../PUBLIC-DEPLOYMENT-READINESS.md`. Public hosting
+> may use paid services, but this local setup still does not enable billing or
+> deploy anything. Do not use this guide as the production deployment procedure.
 
-The user confirmed that deployment must not require a payment method, paid plan,
-Blaze upgrade, or chargeable trial. Do not enable billing to complete deployment.
-Use fresh Firebase accounts; do not import MySQL accounts. Preserve MySQL and
-emulator data as separate fallbacks, never automatic alternatives for failed
-cloud requests.
+## Earlier local-development constraint (historical)
 
-The current implementation remains hybrid, not fully hosted. Firebase Spark
-Authentication, Firestore and static Firebase Hosting are the intended foundation.
-Backend/AI compute hosting is still unselected. New private scan media now uses
-Cloudinary Free; see CLOUDINARY-SETUP.md for activation and legacy-file handling.
-Before selecting providers, verify no-payment eligibility, private access,
-TensorFlow/Grad-CAM memory requirements, model licensing, sleep/cold-start
-behavior, storage persistence, and quota exhaustion behavior. Do not upload
-private user images or publish model files merely to test a hosting candidate.
+This paragraph records the earlier no-cost deployment direction. The current
+project direction allows paid hosting if needed; see the deployment readiness
+plan linked above. It still does not authorize enabling billing or provisioning
+resources on its own. Use fresh Firebase accounts; do not import MySQL accounts.
+Preserve MySQL and emulator data as separate fallbacks, never automatic
+alternatives for failed cloud requests.
+
+The local cloud-hybrid workflow described below uses Firebase Authentication,
+Firestore, and Cloudinary. Its previous free-tier hosting assumptions are
+historical; the separate public-deployment plan now targets paid hosting if
+required. Keep this guide for local development only. Do not upload private user
+images or publish model files merely to test a hosting candidate.
 
 Release gate: the public HTTPS website must complete login, scan, heatmap,
 history, credit/refund and PDF workflows with this PC switched off. Also verify
@@ -71,7 +75,8 @@ The public Firebase web config alone cannot authorize the trusted backend.
 ## 2. Authentication
 
 Firebase Authentication -> Sign-in method -> enable Email/Password. This does not
-enable phone authentication. Do not enable billing or upgrade to Blaze for this setup.
+enable phone authentication. Billing is not needed for this local cloud-hybrid
+workflow; public deployment is a separate plan.
 Create a new account through the website after cloud startup succeeds. Emulator
 and MySQL accounts are not copied automatically.
 

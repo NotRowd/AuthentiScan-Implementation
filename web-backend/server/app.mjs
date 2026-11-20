@@ -1,10 +1,14 @@
 import express from 'express';
+import {visualErrorMessage} from '../shared/visual-review-errors.mjs';
 import helmet from 'helmet';
 import multer from 'multer';
 import { randomUUID } from 'node:crypto';
-import { auth, db, bucket, emulatorHealth,publicConfig,mediaProvider,mediaForRecord } from './firebase.mjs';
+import { auth, db, bucket, emulatorHealth,publicConfig,mediaProvider,mediaForRecord,isCloud } from './firebase.mjs';
 import { readAllowance } from './allowance.mjs';
 import {webRoutes} from './web-routes.mjs';
+import {createBilling} from './billing.mjs';
+import {createEmailVerification} from './email-verification.mjs';
+import {createRegistration,registrationRoutes} from './registration.mjs';
 
 const route = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const error = (status, message) => Object.assign(new Error(message), {status});
@@ -21,21 +25,36 @@ function validName(value) {
 }
 export function createApp(options = {}) {
   const app = express();
+  const billing=options.billing||createBilling({db});
+  const emailVerification=options.emailVerification||createEmailVerification({db,auth,required:isCloud});
+  const configuredOrigins=(process.env.AUTHENTISCAN_ALLOWED_ORIGINS||'http://127.0.0.1:5174,http://localhost:5174')
+    .split(',').map(value=>value.trim()).filter(Boolean);
+  const allowedOrigins=new Set(configuredOrigins.map(value=>{
+    try{const url=new URL(value);if(!['http:','https:'].includes(url.protocol)||url.origin!==value||url.username||url.password)throw new Error();return value;}
+    catch{throw new Error('AUTHENTISCAN_ALLOWED_ORIGINS must be a comma-separated list of exact HTTP(S) origins.');}
+  }));
+  if(process.env.NODE_ENV==='production'&&!process.env.AUTHENTISCAN_ALLOWED_ORIGINS)
+    throw new Error('Set AUTHENTISCAN_ALLOWED_ORIGINS to the deployed website origin before starting production mode.');
   app.disable('x-powered-by');
   app.use(helmet());
   app.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
-    // API is not a LAN/cloud service. Browser calls use the localhost Vite proxy.
-    if (req.headers.origin && !['http://127.0.0.1:5174', 'http://localhost:5174'].includes(req.headers.origin))
-      return res.status(403).json({message:'Only the local test page may access this API.'});
+    // Same-origin Hosting rewrites preserve the browser Origin. Native clients
+    // may omit it; any supplied origin must be explicitly allowlisted.
+    if (req.headers.origin && !allowedOrigins.has(req.headers.origin))
+      return res.status(403).json({message:'This website is not allowed to access the AuthentiScan API.'});
     next();
   });
+  app.post('/api/payments/paymongo/webhook',express.raw({type:'application/json',limit:'256kb'}),route(async(req,res)=>{
+    await billing.webhook(req.body,req.headers['paymongo-signature']);res.json({received:true});
+  }));
   app.use(express.json({limit:'16kb'}));
   app.get('/api/config',(_req,res)=>res.json(publicConfig));
   app.get('/api/health', route(async (_req, res) => {
     const services = await emulatorHealth();
     res.status(Object.values(services).every(Boolean) ? 200 : 503).json({mode:publicConfig.mode, project:publicConfig.firebase.projectId, media:mediaProvider,services});
   }));
+  registrationRoutes(app,options.registration||createRegistration({db,auth}));
   app.use('/api', route(async (req, _res, next) => {
     const bearer = req.headers.authorization?.match(/^Bearer (\S+)$/)?.[1];
     if (!bearer) throw error(401, 'Please sign in.');
@@ -45,7 +64,22 @@ export function createApp(options = {}) {
     req.userRef = db.collection('users').doc(req.account.uid);
     next();
   }));
-  app.use('/api/v1', webRoutes(options));
+  app.get('/api/v1/auth/email-verification',route(async(req,res)=>res.json({success:true,data:await emailVerification.status(req.account.uid)})));
+  app.post('/api/v1/auth/email-verification/send',route(async(req,res)=>{
+    if(Object.keys(req.body||{}).length)throw error(400,'No email override is allowed.');
+    res.json({success:true,data:await emailVerification.send(req.account.uid)});
+  }));
+  app.post('/api/v1/auth/email-verification/confirm',route(async(req,res)=>{
+    if(!req.body||Object.keys(req.body).some(k=>k!=='code'))throw error(400,'Enter only the verification code.');
+    res.json({success:true,data:await emailVerification.confirm(req.account.uid,req.body.code)});
+  }));
+  app.use('/api',route(async(req,_res,next)=>{
+    req.emailVerification=await emailVerification.status(req.account.uid);
+    if(!req.emailVerification.verified&&!['/me','/v1/auth/me'].includes(req.path))
+      throw Object.assign(error(403,'Verify your email before using AuthentiScan.'),{code:'EMAIL_VERIFICATION_REQUIRED'});
+    next();
+  }));
+  app.use('/api/v1', webRoutes({...options,billing}));
   app.get('/api/me', route(async (req, res) => {
     const record = await req.userRef.get();
     if (!record.exists) throw error(404, 'Complete your local test profile.');
@@ -110,8 +144,10 @@ export function createApp(options = {}) {
   app.use((_req, res) => res.status(404).json({message:'Endpoint not available in this local migration stage.'}));
   app.use((err, _req, res, _next) => {
     const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : err instanceof multer.MulterError ? 400 : err.status || 503;
-    const message = status === 413 ? 'Maximum image size is 10 MB.' : status < 500 ? err.message : 'Service unavailable. Check the backend connection and retry.';
-    res.status(status).json({message});
+    const observationMessage = ['SCENE_DESCRIPTION_UNAVAILABLE','VISUAL_REVIEW_UNAVAILABLE'].includes(err.code)
+      ? visualErrorMessage(err.visualCode) : null;
+    const message = status === 413 ? 'Maximum image size is 10 MB.' : status < 500 ? err.message : err.code === 'SCAN_DELETE_INCOMPLETE' ? 'Deletion is incomplete. Some files may already be removed. Retry Delete to finish; your used scan credits have not changed.' : err.code === 'OBJECT_DETECTION_UNAVAILABLE' ? 'Object detection is unavailable. Check the object detector terminal and retry. Your saved classification and scan credits are unchanged.' : 'Service unavailable. Check the backend connection and retry.';
+    res.status(status).json({message:err.code==='EMAIL_DELIVERY_UNAVAILABLE'?'Verification email could not be sent. Try again later or ask the administrator to check the email sender.':observationMessage||message,...(err.code==='EMAIL_VERIFICATION_REQUIRED'?{code:err.code}:{})});
   });
   return app;
 }

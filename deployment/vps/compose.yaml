@@ -1,0 +1,63 @@
+name: authentiscan
+services:
+  api:
+    build: ./api
+    restart: unless-stopped
+    env_file: ./secrets/runtime.env
+    environment:
+      NODE_ENV: production
+      AUTHENTISCAN_DATA_MODE: cloud-hybrid
+      AUTHENTISCAN_USE_ADC: '1'
+      GOOGLE_APPLICATION_CREDENTIALS: /secrets/firebase-admin.json
+      AUTHENTISCAN_CLOUDINARY_CONFIG_PATH: /secrets/cloudinary.json
+      AUTHENTISCAN_ALLOWED_ORIGINS: https://${APP_DOMAIN:?Set APP_DOMAIN in .env}
+      AUTHENTISCAN_CHECKOUT_ORIGIN: https://${APP_DOMAIN}
+      AUTHENTISCAN_LOCALIZATION_ENABLED: '1'
+      AUTHENTISCAN_LOCALIZATION_MODE: mesorch-p
+      PORT: '8080'
+    volumes:
+      - ./secrets/firebase-admin.json:/secrets/firebase-admin.json:ro
+      - ./secrets/cloudinary.json:/secrets/cloudinary.json:ro
+    mem_limit: 2g
+    cpus: 2
+    security_opt: [no-new-privileges:true]
+  classifier:
+    build: ./classifier
+    restart: unless-stopped
+    network_mode: service:api
+    depends_on: [api]
+    mem_limit: 3g
+    cpus: 2
+    security_opt: [no-new-privileges:true]
+  localizer:
+    build: ./localizer
+    restart: unless-stopped
+    network_mode: service:api
+    depends_on: [api]
+    mem_limit: 3g
+    cpus: 2
+    security_opt: [no-new-privileges:true]
+  visual:
+    build: ./visual
+    restart: unless-stopped
+    network_mode: service:api
+    depends_on: [api]
+    mem_limit: 5g
+    cpus: 2
+    security_opt: [no-new-privileges:true]
+  web:
+    build: ./web
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      TLS_EMAIL: ${TLS_EMAIL:?Set TLS_EMAIL in .env}
+    ports: ['80:80', '443:443']
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api]
+    mem_limit: 256m
+    security_opt: [no-new-privileges:true]
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,12 +1,15 @@
+import {useTheme} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
 import React, { useCallback, useRef, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import CyberButton from './CyberButton';
 import CyberText from './CyberText';
-import Colors from '../../constants/Colors';
 import { shareSavedScanReport } from '../../services/scan/reportExport';
 
 export default function ExportReportButton({ scanId }: { scanId: string }) {
+ const {colors:Colors}=useTheme();
+
   const active = useRef<AbortController | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [busy, setBusy] = useState(false);

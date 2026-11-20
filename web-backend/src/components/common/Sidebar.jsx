@@ -10,6 +10,9 @@ import {
   Sparkles
 } from 'lucide-react';
 import { getStoredUser, clearAuthSession } from '../../services/api';
+import logo from '../../assets/logo.png';
+import Avatar from './Avatar';
+import ThemeSwitcher from './ThemeSwitcher';
 
 export default function Sidebar() {
   const location = useLocation();
@@ -29,7 +32,7 @@ export default function Sidebar() {
     ? `${user.first_name} ${user.last_name}`
     : 'User Account';
 
-  const planName = user?.plan?.name || 'Free';
+  const planName = user?.plan?.scan_limit === null ? 'Pro' : user?.plan?.name || 'Free';
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -40,14 +43,18 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside aria-label="Workspace navigation" className="w-60 shrink-0 glass-panel border-r border-slate-800 flex-col justify-between hidden lg:flex min-h-[calc(100vh-4rem)]">
-      <div className="p-4 space-y-6">
+    <aside aria-label="Workspace navigation" className="w-64 shrink-0 bg-surface border-r border-line flex-col hidden lg:flex sticky top-0 self-start h-dvh min-h-0 z-10 shadow-sm">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 space-y-8">
+        <Link to="/dashboard" aria-label="AuthentiScan dashboard" className="flex items-center gap-3 py-2 group">
+          <img src={logo} alt="" className="theme-logo w-10 h-10 object-contain shrink-0 drop-shadow-sm group-hover:scale-105 transition-transform duration-300" />
+          <span className="font-bold text-xl leading-none tracking-tight text-ink">Authenti<span className="text-accent">Scan</span></span>
+        </Link>
         {/* Navigation Menu */}
         <div>
-          <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2">
+          <div className="text-[11px] font-bold text-accent uppercase tracking-[0.15em] px-4 mb-3">
             Main Navigation
           </div>
-          <nav className="space-y-1">
+          <nav className="space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path || (item.path === '/history' && location.pathname.startsWith('/scans/'));
@@ -56,13 +63,13 @@ export default function Sidebar() {
                   key={item.path}
                   to={item.path}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                     isActive
-                      ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+                      ? 'bg-accent-soft text-accent shadow-sm shadow-accent/50'
+                      : 'text-ink-secondary hover:text-accent hover:bg-canvas'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-brand-400' : 'text-slate-500'}`} />
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-accent' : 'text-ink-muted'}`} />
                   {item.name}
                 </Link>
               );
@@ -71,27 +78,28 @@ export default function Sidebar() {
         </div>
 
         {/* AI Capstone Feature Info Box */}
-        <div className="p-3.5 rounded-xl bg-gradient-to-br from-slate-900 to-indigo-950/50 border border-indigo-500/20">
-          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-300 mb-1">
-            <Sparkles className="w-4 h-4 text-indigo-400" />
+        <div className="p-4 rounded-2xl bg-accent-soft/50 border border-line">
+          <div className="flex items-center gap-2 text-xs font-bold text-accent mb-2">
+            <Sparkles className="w-4 h-4 text-accent" />
             Read results thoughtfully
           </div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
+          <p className="text-xs text-ink-muted leading-relaxed font-medium">
             AI scores are estimates, not proof. Open a saved scan to review its explanation, heatmap, and PDF report.
           </p>
         </div>
       </div>
 
       {/* Bottom Profile Quick View */}
-      <div className="p-4 border-t border-slate-800/80">
+      <div className="shrink-0 p-5 border-t border-line bg-canvas">
+        <div className="mb-4"><ThemeSwitcher /></div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-9 h-9 rounded-full bg-brand-600/30 border border-brand-500/40 flex items-center justify-center font-bold text-brand-300 text-xs shrink-0">
-              {userInitials}
+            <div className="w-10 h-10 rounded-full bg-accent-soft border border-line flex items-center justify-center font-bold text-accent text-sm shrink-0">
+              <Avatar user={user} initials={userInitials}/>
             </div>
             <div className="flex flex-col truncate">
-              <span className="text-xs font-medium text-white leading-snug truncate">{userFullName}</span>
-              <span className="text-[10px] text-slate-400 truncate">{planName} Plan</span>
+              <span className="text-sm font-bold text-ink leading-snug truncate">{userFullName}</span>
+              <span className="text-xs font-medium text-ink-muted truncate">{planName} Plan</span>
             </div>
           </div>
           <button
@@ -99,7 +107,7 @@ export default function Sidebar() {
             onClick={handleLogout}
             title="Logout"
             aria-label="Log out"
-            className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg transition-colors shrink-0"
+            className="text-ink-muted hover:text-danger hover:bg-danger-soft p-2 rounded-xl transition-colors shrink-0"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -108,4 +116,3 @@ export default function Sidebar() {
     </aside>
   );
 }
-

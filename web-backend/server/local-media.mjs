@@ -8,7 +8,7 @@ import {randomUUID} from 'node:crypto';
 export function createLocalMedia(root){
   const directory=path.resolve(root);
   function resolve(name){
-    if(typeof name!=='string'||!/^users\/[A-Za-z0-9_-]{1,128}\/(?:scans\/[a-f0-9-]{36}\/(?:original|heatmap\.png)|storage-tests\/[a-f0-9-]{36})$/.test(name))throw new Error('Invalid private media path.');
+    if(typeof name!=='string'||!/^users\/[A-Za-z0-9_-]{1,128}\/(?:scans\/[a-f0-9-]{36}\/(?:original|heatmap\.png|localization-mask\.png)|storage-tests\/[a-f0-9-]{36})$/.test(name))throw new Error('Invalid private media path.');
     return path.join(directory,...name.split('/'));
   }
   async function ensureRoot(){await mkdir(directory,{recursive:true});if((await lstat(directory)).isSymbolicLink())throw new Error('Media root cannot be a link.');}

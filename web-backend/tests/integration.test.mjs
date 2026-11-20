@@ -34,6 +34,42 @@ before(async()=>{
 });
 after(async()=>{if(server)await new Promise(r=>server.close(r));await db.terminate();});
 
+test('profile edits persist across clients without changing ownership, plan or allowance',async()=>{
+  const user=await account();await saveProfile(user);
+  const prior=await (await api(user,'/me')).json();
+  const patch=body=>({...json(body),method:'PATCH'});
+  const changed=await api(user,'/v1/auth/me',patch({firstName:' Updated ',lastName:' Person '}));
+  assert.equal(changed.status,200);const data=(await changed.json()).data;
+  assert.equal(data.user.first_name,'Updated');assert.equal(data.user.last_name,'Person');
+  assert.equal(data.user.email,user.email);assert.equal(data.user.uid,user.uid);assert.equal(data.user.plan,'Free');
+  const fromOtherClient=await (await api(user,'/v1/auth/me')).json();assert.equal(fromOtherClient.data.user.first_name,'Updated');
+  assert.deepEqual((await (await api(user,'/me')).json()).allowance,prior.allowance);
+  for(const body of [{firstName:'',lastName:'Name'},{firstName:'x'.repeat(101),lastName:'Name'},
+    {firstName:'Bad\nName',lastName:'Name'},{firstName:'Valid',lastName:'Name',plan:'Pro'},
+    {firstName:'Valid',lastName:'Name',uid:bob.uid},{firstName:'Valid',lastName:'Name',email:bob.email},[],{}])
+    assert.equal((await api(user,'/v1/auth/me',patch(body))).status,400);
+  assert.equal((await api(null,'/v1/auth/me',patch({firstName:'A',lastName:'B'}))).status,401);
+  assert.equal((await (await api(bob,'/me')).json()).profile.first_name,'Local');
+  await db.collection('users').doc(user.uid).update({status:'disabled'});
+  assert.equal((await api(user,'/v1/auth/me',patch({firstName:'A',lastName:'B'}))).status,403);
+});
+
+test('Firebase reset link changes only the test password and cannot be reused',async()=>{
+  const user=await account();await saveProfile(user);
+  const before=(await db.collection('users').doc(user.uid).get()).data();
+  const request=await identity('sendOobCode',{requestType:'PASSWORD_RESET',email:user.email});assert.equal(request.status,200);
+  // Authentication emulator only; no real email is sent and codes are not logged here.
+  const codes=await (await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PROJECT_ID}/oobCodes`)).json();
+  const code=codes.oobCodes.find(item=>item.email===user.email&&item.requestType==='PASSWORD_RESET')?.oobCode;
+  assert.ok(code);
+  const newPassword='ResetTestOnly!456';
+  assert.equal((await identity('resetPassword',{oobCode:code,newPassword})).status,200);
+  assert.equal((await identity('signInWithPassword',{email:user.email,password,returnSecureToken:true})).status,400);
+  assert.equal((await identity('signInWithPassword',{email:user.email,password:newPassword,returnSecureToken:true})).status,200);
+  assert.equal((await identity('resetPassword',{oobCode:code,newPassword:'AnotherTestOnly!789'})).status,400);
+  assert.deepEqual((await db.collection('users').doc(user.uid).get()).data(),before);
+});
+
 test('registration, login, duplicate signup, wrong passwords, and invalid tokens',async()=>{
   assert.equal((await identity('signInWithPassword',{email:alice.email,password,returnSecureToken:true})).status,200);
   assert.equal((await identity('signInWithPassword',{email:alice.email,password:'wrong-password',returnSecureToken:true})).status,400);

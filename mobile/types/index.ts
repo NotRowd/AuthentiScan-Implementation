@@ -28,6 +28,9 @@ export type GradCamResult = {
 
 export type ScanResult = {
   analysisProvider?: string;
+  analysis?: import('../services/api/contracts').ApiAnalysis;
+  fileSizeBytes?: number;
+  mimeType?: string;
   providerReview?: import('../services/api/contracts').ApiScan['provider_review'];
   scanNumber?: number;
   usesSixtyPercentRule?: boolean;

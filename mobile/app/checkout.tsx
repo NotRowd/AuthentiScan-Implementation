@@ -1,6 +1,9 @@
+import {useTheme,useThemedStyles} from '../context/ThemeContext';
+import type {ColorPalette} from '../constants/Colors';
+import {createStyles} from '../constants/createStyles';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Linking, ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import { AppState, Linking, ScrollView, StyleSheet, View, Pressable } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthContext } from '../context/AuthContext';
 import { apiRequest } from '../services/api/client';
@@ -10,16 +13,15 @@ import type { ApiPlan } from '../services/api/contracts';
 import CyberButton from '../components/ui/CyberButton';
 import CyberText from '../components/ui/CyberText';
 import GlassCard from '../components/ui/GlassCard';
-import Colors from '../constants/Colors';
 
 type Order = {
   id: string; status: string; amount: number; checkout_url?: string;
   created_at?: string; paid_at?: string; expires_at?: string;
 };
-type Billing = { enabled: boolean; plan: ApiPlan; offer: { amount: number | null }; orders: Order[]; message: string };
+type Billing = { enabled: boolean; plan: ApiPlan; offer: { amount: number | null; purchase_type?: string }; orders: Order[]; message: string };
 const endpoint = '/api/v1/billing';
 const peso = (amount: number | null) => amount !== null && Number.isSafeInteger(amount)
-  ? 'PHP ' + (amount / 100).toFixed(2) : 'Price to be confirmed';
+  ? new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP'}).format(amount / 100) : 'Price to be confirmed';
 const paymentDate = (value?: string) => value && Number.isFinite(Date.parse(value))
   ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) : '';
 const orderLabel: Record<string, string> = {
@@ -27,6 +29,8 @@ const orderLabel: Record<string, string> = {
 };
 
 export default function CheckoutScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const { refreshAccount } = useAuthContext();
   const [billing, setBilling] = useState<Billing>();
   const [busy, setBusy] = useState(false);
@@ -84,7 +88,6 @@ export default function CheckoutScreen() {
   }, [load]);
 
   useEffect(() => {
-    if (!OFFLINE_MODE) void run(async signal => { await load(signal); });
     const subscription = AppState.addEventListener('change', state => {
       if (state !== 'active' || !returnOrder.current) return;
       setResumedOrder(returnOrder.current);
@@ -97,6 +100,10 @@ export default function CheckoutScreen() {
     };
   }, [load, run]);
 
+  useFocusEffect(useCallback(() => {
+    if (!OFFLINE_MODE) void run(async signal => { await load(signal); });
+  }, [load, run]));
+
   useEffect(() => {
     if (busy || !resumedOrder) return;
     setResumedOrder(null);
@@ -104,6 +111,7 @@ export default function CheckoutScreen() {
   }, [busy, confirm, resumedOrder, run]);
 
   const checkout = () => run(async signal => {
+    if(!acknowledged || !billing?.enabled || billing.plan.scan_limit===null) throw new Error('Acknowledge the capstone payment notice before continuing.');
     const { data } = await apiRequest<{ data: Order }>(endpoint + '/checkout', {
       method: 'POST', json: { accept_test_purchase: true }, signal, timeoutMs: 30000,
     });
@@ -117,43 +125,55 @@ export default function CheckoutScreen() {
     catch (failure) { returnOrder.current = null; throw failure; }
   });
 
-  const pending = billing?.orders.find(order => order.status === 'pending');
+  const pending = billing?.orders.find(order => ['pending','creating'].includes(order.status));
   const pro = billing?.plan?.scan_limit === null;
   const expiry = paymentDate(billing?.plan?.expires_at);
-  return <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bgPrimary }}>
-    <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }}>
-      <CyberText variant="h3">Subscription</CyberText>
-      {OFFLINE_MODE ? <CyberText variant="bodySmall">Checkout is available in connected mode.</CyberText> : <>
-        {billing && <>
-          <GlassCard>
-            <CyberText variant="h4">Current plan: {pro ? 'Pro' : 'Free'}</CyberText>
-            {pro && expiry ? <CyberText variant="bodySmall">Active until {expiry} (Philippine time).</CyberText> : null}
+  const help = !billing?.enabled ? billing?.message || 'Checkout is unavailable.' : busy ? 'A payment request is in progress. Please wait.' : !acknowledged ? 'Tick the acknowledgement above to enable checkout.' : pending ? 'Resume the existing purchase. If you already paid, do not make another payment.' : 'Acknowledgement received. You can continue to simulated checkout.';
+  const benefits=['Saved scan history','PDF reports at no extra cost','Failed scans do not use a credit'];
+  return <SafeAreaView style={styles.screen}>
+    <ScrollView contentContainerStyle={styles.content}>
+      <CyberText variant="label" color={Colors.cyan}>YOUR SUBSCRIPTION</CyberText>
+      <CyberText variant="h3">Plans &amp; payments</CyberText>
+      <CyberText variant="bodySmall">Your plan, your scan allowance, and your payment history in one place.</CyberText>
+      <View style={styles.notice}><CyberText variant="bodySmall">Capstone demonstration · Payments are simulated. No real money is charged.</CyberText></View>
+      {OFFLINE_MODE?<CyberText variant="bodySmall">Checkout is available in connected mode.</CyberText>:<>
+        {!billing&&!error&&<CyberText variant="bodySmall">Loading your subscription…</CyberText>}
+        {!!error&&<View accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}><CyberText variant="bodySmall" color={Colors.fake}>{error}</CyberText><CyberButton label="Retry loading" variant="secondary" disabled={busy} onPress={()=>run(async signal=>{await load(signal);})}/></View>}
+        {!!notice&&<View accessibilityLiveRegion="polite"><CyberText variant="bodySmall">{notice}</CyberText></View>}
+        {billing&&<>
+          <GlassCard style={styles.banner}><CyberText variant="caption">YOUR CURRENT PLAN</CyberText><CyberText variant="h4">{pro?'Pro':'Free'}</CyberText><CyberText variant="bodySmall">{pro?'Unlimited scans during your active month.':'5 free scans every day. Resets at midnight Philippine time.'}</CyberText>
+            {pro&&<><CyberText variant="bodySmall">Pro is active until {expiry||'the saved expiry date'} (Philippine time).</CyberText><CyberText variant="caption">No automatic renewal. After your pass expires, you return to Free and can buy another month. Your saved scans remain available.</CyberText></>}
+            <CyberButton label={pro?'Scan an image':'View remaining scans'} variant="secondary" onPress={()=>router.push(pro?'/(tabs)/scan':'/(tabs)/dashboard')}/>
           </GlassCard>
-          <GlassCard><CyberText variant="h4">Free</CyberText><CyberText variant="bodySmall">PHP 0 · 5 scans per day</CyberText></GlassCard>
-          <GlassCard><CyberText variant="h4">Pro</CyberText><CyberText variant="bodySmall">{peso(billing.offer.amount)} · One calendar month · Unlimited scans</CyberText></GlassCard>
-          <CyberText variant="caption">Capstone checkout is simulated. No real money is charged. Pro does not renew automatically.</CyberText>
-          {!billing.enabled && !pro && <CyberText variant="caption">{billing.message}</CyberText>}
-          {billing.enabled && !pro && <>
-            <CyberButton label={acknowledged ? '✓ I understand this is a capstone payment' : 'I understand no real money is charged'} variant="secondary" disabled={busy} onPress={() => setAcknowledged(value => !value)} />
-            <CyberButton label={pending ? 'Resume checkout' : 'Continue to checkout'} disabled={busy || !acknowledged} onPress={checkout} />
-          </>}
-          <CyberText variant="h4">Payment history</CyberText>
-          {billing.orders.length ? billing.orders.map(order => <GlassCard key={order.id}>
-            <CyberText variant="bodySmall">{peso(order.amount)} · {orderLabel[order.status] || order.status}</CyberText>
-            {!!paymentDate(order.paid_at || order.created_at) &&
-              <CyberText variant="caption">{paymentDate(order.paid_at || order.created_at)} (Philippine time)</CyberText>}
-          </GlassCard>) :
-            <CyberText variant="bodySmall">No payments yet.</CyberText>}
+          {[false,true].map(isPro=><GlassCard key={isPro?'pro':'free'} style={isPro?styles.pro:styles.plan}>
+            <View style={styles.heading}><CyberText variant="h4">{isPro?'Pro':'Free'}</CyberText>{isPro||!pro?<CyberText variant="caption" color={Colors.cyanAlt}>{isPro?(pro?'Current plan':'Monthly pass'):'Current plan'}</CyberText>:null}</View>
+            <CyberText variant="h3">{isPro?peso(billing.offer.amount):'₱0'}</CyberText><CyberText variant="caption">{isPro?'For one calendar month':'No payment needed'}</CyberText>
+            <CyberText variant="body" style={{fontWeight:'600'}}>{isPro?'Unlimited scans':'5 scans per day'}</CyberText>
+            {benefits.map(item=><CyberText key={item} variant="bodySmall">✓ {item}</CyberText>)}
+            <View style={styles.rule}/><CyberText variant="bodySmall">{isPro?(billing.offer.purchase_type==='one_time'?'Pay once for a month. No automatic renewal.':'Purchase details are currently unavailable.'):'For occasional image checks. Your daily allowance resets at midnight Philippine time.'}</CyberText>
+            {isPro&&(pro?<View style={styles.notice}><CyberText variant="bodySmall">Your Pro pass is active. You can buy another month after this pass expires.</CyberText></View>:<>
+              {!billing.enabled&&<CyberText variant="bodySmall">{billing.message}</CyberText>}
+              <Pressable accessibilityRole="checkbox" accessibilityLabel="I understand this capstone checkout simulates payment. No real money will be charged." accessibilityState={{checked:acknowledged,disabled:busy||!billing.enabled}} disabled={busy||!billing.enabled} onPress={()=>setAcknowledged(v=>!v)} style={styles.ack}>
+                <View style={[styles.checkbox,acknowledged&&styles.checked]}><CyberText variant="bodySmall" color={acknowledged?Colors.bgSecondary:Colors.cyan}>{acknowledged?'✓':''}</CyberText></View><View style={{flex:1}}><CyberText variant="bodySmall">I understand this capstone checkout simulates payment. No real money will be charged.</CyberText></View>
+              </Pressable>
+              <CyberButton label={busy?'Please wait…':!billing.enabled?'Checkout unavailable':pending?'Resume checkout':'Continue to checkout'} disabled={busy||!acknowledged||!billing.enabled} loading={busy} onPress={checkout}/>
+              <View accessibilityLiveRegion="polite"><CyberText variant="caption">{help}</CyberText></View>
+              <CyberText variant="caption">Checkout with PayMongo{ '\n' }GCash · Maya · Cards, when available</CyberText>
+            </>)}
+          </GlassCard>)}
+          <CyberText variant="bodySmall">Both plans use the same AI analysis. Pro increases your scan allowance, not prediction accuracy.</CyberText>
+          <GlassCard style={styles.plan}><CyberText variant="h4">Payment history</CyberText><CyberText variant="caption">Your latest 20 orders. All times are Philippine time.</CyberText>
+            <CyberButton label="Refresh history" variant="secondary" disabled={busy} onPress={()=>run(async signal=>{await load(signal);})}/>
+            {billing.orders.length?billing.orders.map(order=><View key={order.id} style={styles.order}>
+              <CyberText variant="body" style={{fontWeight:'600'}}>Pro monthly pass · {peso(order.amount)}</CyberText><CyberText variant="bodySmall">{orderLabel[order.status]||'Checkout preparation incomplete'}</CyberText><CyberText variant="caption">Started {paymentDate(order.created_at)||'Date unavailable'}</CyberText>
+              {order.status==='pending'&&<CyberButton label={busy?'Checking…':'Check payment'} variant="secondary" disabled={busy} onPress={()=>run(signal=>confirm(order.id,signal))}/>}
+              {['pending','creating'].includes(order.status)&&!pro&&<CyberButton label="Resume checkout" variant="secondary" disabled={busy||!acknowledged||!billing.enabled} onPress={checkout}/>}
+            </View>):<View style={styles.notice}><CyberText variant="bodySmall">No payments yet.</CyberText><CyberText variant="caption">Your orders will appear here when you start checkout.</CyberText></View>}
+          </GlassCard>
         </>}
-        {!!notice && <CyberText variant="bodySmall">{notice}</CyberText>}
-        {!!error && <CyberText variant="bodySmall" color={Colors.fake}>{error}</CyberText>}
-        <CyberButton label={pending ? 'Check payment' : 'Refresh subscription'} disabled={busy} loading={busy}
-          onPress={() => run(async signal => {
-            if (pending) await confirm(pending.id, signal);
-            else await load(signal);
-          })} variant="secondary" />
       </>}
-      <CyberButton label="Back" variant="ghost" onPress={() => router.back()} />
+      <CyberButton label="Back" variant="ghost" onPress={()=>router.back()}/>
     </ScrollView>
   </SafeAreaView>;
 }
+const makeStyles = (Colors: ColorPalette) => createStyles({screen:{flex:1,backgroundColor:Colors.bgPrimary},content:{width:'100%',maxWidth:680,alignSelf:'center',padding:20,paddingBottom:48,gap:14},plan:{gap:10,borderRadius:22},pro:{gap:10,borderRadius:22,borderColor:Colors.glassBorderCyan,backgroundColor:Colors.bgSecondary},banner:{gap:7,borderRadius:22,backgroundColor:Colors.cyanDim,borderColor:Colors.border},notice:{padding:12,borderRadius:14,backgroundColor:Colors.cyanDim,gap:5},heading:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10},rule:{height:1,backgroundColor:Colors.border,marginVertical:4},ack:{flexDirection:'row',alignItems:'flex-start',gap:10,paddingVertical:6,minHeight:44},checkbox:{width:22,height:22,borderRadius:5,borderWidth:1,borderColor:Colors.textMuted,alignItems:'center',justifyContent:'center'},checked:{backgroundColor:Colors.cyan,borderColor:Colors.cyan},error:{padding:14,borderRadius:14,backgroundColor:Colors.fakeDim,gap:10},order:{borderTopWidth:1,borderColor:Colors.border,paddingTop:12,gap:7}});

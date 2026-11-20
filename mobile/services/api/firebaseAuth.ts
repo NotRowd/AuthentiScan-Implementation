@@ -72,3 +72,16 @@ export async function refreshCredentials(refreshToken: string): Promise<Credenti
   });
   return { idToken: data.id_token, refreshToken: data.refresh_token, expiresIn: data.expires_in };
 }
+
+async function registrationRequest(action:string,body:object){
+  await getApiKey();
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),45000);
+  try{
+    const response=await fetch(API_BASE_URL+'/api/v1/auth/registration/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller.signal,redirect:'error'});
+    const payload=await response.json();
+    if(!response.ok||!payload?.success)throw new Error(payload?.message||'Registration service unavailable.');
+    return payload;
+  }finally{clearTimeout(timer);}
+}
+export function requestRegistrationCode(email:string):Promise<{data:{challenge_id:string;resend_after:number}}>{return registrationRequest('send-code',{email});}
+export function completeRegistration(payload:{email:string;password:string;firstName:string;lastName:string;challenge_id:string;code:string;accept_terms:true}){return registrationRequest('complete',payload);}

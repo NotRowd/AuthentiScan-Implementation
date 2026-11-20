@@ -1,1 +1,6 @@
-{"projects":{"default":"demo-authentiscan-local"}}
+{
+  "projects": {
+    "default": "demo-authentiscan-local",
+    "production": "authentiscan-bc704"
+  }
+}

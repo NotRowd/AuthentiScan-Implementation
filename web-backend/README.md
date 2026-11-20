@@ -17,17 +17,18 @@ accounts, use `npm.cmd run start:cloud` and the separate AI terminal.
 
 ### Terminal 1: existing AI service
 
-If the AI service is already running at port 5001, leave it running. Otherwise:
+If the current Loyd AI service is already running at port 5001, leave it running.
+Its health response must identify `loyd-classifier-v1-research` and policy
+`sha256:f56f876dbf8234b6`. If an older service is running, stop it with Ctrl+C
+in its terminal first, then start the current launcher:
 
 ```powershell
-cd 'D:\AuthentiScan-AI-Foundation\ai-service'
-$env:AUTHENTISCAN_MODEL_PATH='D:\AuthentiScan - backend\ai-models\curated-v1-candidate-v1-dev\authentiscan-efficientnet-b0-v3.keras'
-$env:AUTHENTISCAN_POLICY_PATH='D:\AuthentiScan - backend\ai-models\curated-v1-candidate-v1-dev\policy.candidate-dev.json'
-& '.\.venv\Scripts\python.exe' -m uvicorn service.app:app --host 127.0.0.1 --port 5001
+& 'D:\AuthentiScan - backend\ai-runtime\start-loyd-ai.ps1'
 ```
 
-Wait for Application startup complete. The model is unchanged; migrating the
-database does not improve classification accuracy.
+Wait for Application startup complete. The web checks both model and policy
+identity; an older classifier can return HTTP 200 from `/health` and still be
+rejected as not ready. See [runtime instructions](../ai-runtime/README.md).
 
 ### Terminal 2: Firebase and website
 
@@ -88,7 +89,21 @@ Startup refuses occupied ports instead of terminating another application.
 | History, filters, result details | Owner-scoped Firestore scan records |
 | Original images and Grad-CAM | Owner-scoped Storage via authenticated API |
 | Dashboard and readiness | Firebase statistics and live AI health check |
-| PDF export | Stored result and heatmap; no new inference |
+| PDF export | Saved verdict, description, original, Grad-CAM, object boxes and localization; no new inference |
+
+### Updated PDF reports (web and Firebase-connected mobile)
+
+The shared export presents the saved verdict and class scores first, followed by
+the result explanation and image description. Separate visual panels distinguish
+Grad-CAM from possible edited areas; numbered object boxes match the detection list.
+Model versions and decision policy appear in a technical record, with page numbers.
+
+Uncertain classifications have no single-class Grad-CAM. Uncertain localization
+shows the original without highlights; available localization uses the saved mask,
+not the adjustable unverified preview. Validation limitations remain visible.
+Missing images or descriptions do not prevent export. To include a pending image
+description, wait for it to finish in the app and export again. No AI is rerun and
+no scan credit is charged. Restart the backend after updating the report code.
 
 Retries with the same request ID do not charge twice. Interrupted processing
 reservations are released on a subsequent history/statistics refresh after a

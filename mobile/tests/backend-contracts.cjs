@@ -49,6 +49,7 @@ const raw = scenario => makeScanFixture(image, scenario, 19).data;
 let passed = 0;
 async function test(name, fn) { await fn(); passed++; console.log('PASS ' + name); }
 const firebaseToken = 'TEST-TOKEN-NOT-A-REAL-JWT';
+const proof={challenge_id:'22222222-2222-4222-8222-222222222222',code:'123456',accept_terms:true};
 const rawResponse = data => ({ ok: true, status: 200, json: async () => data });
 function firebaseFetch(url, options = {}) {
   if (url.endsWith('/api/config')) return rawResponse({
@@ -58,6 +59,7 @@ function firebaseFetch(url, options = {}) {
     assert.equal(options.headers.Authorization, undefined);
     return rawResponse({ idToken: firebaseToken, refreshToken: 'TEST-REFRESH', expiresIn: '3600' });
   }
+  if(url.endsWith('/auth/registration/complete')){assert.equal(options.headers.Authorization,undefined);return response({created:true});}
   assert.equal(options.headers.Authorization, 'Bearer ' + firebaseToken);
   if (url.endsWith('/auth/me')) return response({ user, plan: user.plan });
   if (url.endsWith('/api/me')) return rawResponse({ message: 'Profile saved.' });
@@ -73,7 +75,7 @@ async function main() {
     assert.equal(await auth.getSession(), null);
     await assert.rejects(history.getAll(), /paginated/);
   });
-  await test('Firebase registration creates the shared profile without storing the password', async () => {
+  await test('verified registration uses the server before normal sign-in and never stores the password', async () => {
     const requests = [];
     global.fetch = async (url, options) => {
       requests.push(url);
@@ -83,10 +85,11 @@ async function main() {
       if (url.endsWith('/api/me')) assert.deepEqual(JSON.parse(options.body), { firstName: 'Mobile', lastName: 'Test' });
       return firebaseFetch(url, options);
     };
-    const result = await auth.register({ firstName: ' Mobile ', lastName: 'Test', email: user.email, password: 'not-real-password' });
+    const result = await auth.register({ firstName: ' Mobile ', lastName: 'Test', email: user.email, password: 'not-real-password',...proof });
     assert.equal(result.success, true); assert.equal(result.data.scanLimit, 5);
     assert.equal(secure.size, 1);
-    assert.ok(requests.some(url => url.includes('accounts:update?')));
+    assert.ok(requests.some(url => url.endsWith('/auth/registration/complete')));
+    assert.ok(!requests.some(url => url.includes('accounts:signUp?')));
     assert.ok(!JSON.stringify([...secure.values()]).includes('not-real-password'));
     assert.ok(!JSON.stringify([...offline.values()]).includes('TEST-TOKEN'));
   });
@@ -99,8 +102,8 @@ async function main() {
     assert.equal((await auth.getSession()).name, 'Mobile Test');
   });
   await test('server validation messages are preserved', async () => {
-    global.fetch = async () => ({ ok: false, status: 400, json: async () => ({ error: { message: 'EMAIL_EXISTS' } }) });
-    const result = await auth.register({ firstName: 'Mobile', lastName: 'Test', email: user.email, password: 'test-password' });
+    global.fetch = async () => ({ok:false,status:409,json:async()=>({message:'This email already has an account. Sign in or reset your password.'})});
+    const result = await auth.register({ firstName: 'Mobile', lastName: 'Test', email: user.email, password: 'test-password',...proof });
     assert.equal(result.success, false); assert.match(result.error, /already has an account/);
   });
   await test('native multipart preserves original filename instead of picker UUID and lets fetch set boundary', async () => {
@@ -136,9 +139,9 @@ async function main() {
   await test('native socket reset has an actionable message and does not retry registration', async () => {
     let calls = 0;
     global.fetch = async () => { calls++; throw new Error('fetch failed: java.net.SocketException: Connection reset'); };
-    const result = await auth.register({ firstName: 'Mobile', lastName: 'Test', email: user.email, password: 'test-password' });
+    const result = await auth.register({ firstName: 'Mobile', lastName: 'Test', email: user.email, password: 'test-password',...proof });
     assert.equal(result.success, false);
-    assert.match(result.error, /Registration may already have completed/);
+    assert.match(result.error, /Connection reset/);
     assert.equal(calls, 1);
   });
   await test('server quota rejection does not remove the session', async () => {
@@ -279,7 +282,7 @@ async function main() {
   await test('failed secure storage never authenticates the app', async () => {
     await auth.logout(); storageFail = true;
     global.fetch = async (...args) => firebaseFetch(...args);
-    const result = await auth.login({ email: user.email, password: 'test-password' });
+    const result = await auth.login({ email: user.email, password: 'test-password',...proof });
     assert.equal(result.success, false); assert.equal(await session.getToken(), null);
     storageFail = false;
   });

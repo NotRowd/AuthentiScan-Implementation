@@ -1,3 +1,6 @@
+import {ThemeProvider,useTheme} from '../context/ThemeContext';
+import type {ColorPalette} from '../constants/Colors';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text } from 'react-native';
@@ -11,18 +14,31 @@ import { OFFLINE_MODE } from '../services/api/config';
  * Wraps the entire application with:
  * - AuthProvider (authentication state)
  * - Stack navigator with the application canvas background
- * - StatusBar set to dark content for light surfaces
+ * - StatusBar follows the selected appearance
  */
-export default function RootLayout() {
+export default function RootLayout(){return <ThemeProvider><RootContent/></ThemeProvider>;}
+
+function RootContent() {
+ const {colors:Colors,isDark}=useTheme();
+
+  const [fontsLoaded, fontError] = useFonts({
+    'Poppins-Regular': require('../assets/fonts/Poppins-Regular.ttf'),
+    'Poppins-Medium': require('../assets/fonts/Poppins-Medium.ttf'),
+    'Poppins-SemiBold': require('../assets/fonts/Poppins-SemiBold.ttf'),
+    'Poppins-Bold': require('../assets/fonts/Poppins-Bold.ttf'),
+    'Poppins-ExtraBold': require('../assets/fonts/Poppins-ExtraBold.ttf'),
+  });
+  // A failed font load must never block account recovery or a saved report.
+  if (!fontsLoaded && !fontError) return <View style={{flex:1,justifyContent:'center',backgroundColor:Colors.bgPrimary}}><ActivityIndicator accessibilityLabel="Loading AuthentiScan" color={Colors.cyan}/></View>;
   return (
     <SafeAreaProvider><AuthProvider>
-      <View style={{ flex: 1, backgroundColor: '#F6FAFD' }}>
-      {OFFLINE_MODE && <SafeAreaView edges={['top']} style={{ backgroundColor: '#EAF6FF' }}>
-        <Text style={{ color: '#176FB7', textAlign: 'center', padding: 6, fontSize: 11 }}>
+      <View style={{ flex: 1, backgroundColor: Colors.bgPrimary }}>
+      {OFFLINE_MODE && <SafeAreaView edges={['top']} style={{ backgroundColor: Colors.cyanDim }}>
+        <Text style={{ color: Colors.cyanAlt, textAlign: 'center', padding: 6, fontSize: 11 }}>
           OFFLINE TEST MODE — no backend or real AI. Use test details only; passwords are not verified.
         </Text>
       </SafeAreaView>}
-      <StatusBar style="dark" />
+      <StatusBar style={isDark?'light':'dark'} />
       <Navigation />
       </View>
     </AuthProvider></SafeAreaProvider>
@@ -30,14 +46,16 @@ export default function RootLayout() {
 }
 
 function Navigation() {
+ const {colors:Colors}=useTheme();
+
   const { isAuthenticated, isLoading, user } = useAuthContext();
   // Do not build a signed-out navigation history while restoring a saved session.
-  if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: '#F6FAFD' }}><ActivityIndicator accessibilityLabel="Restoring session" color="#2589D8" /></View>;
+  if (isLoading) return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: Colors.bgPrimary }}><ActivityIndicator accessibilityLabel="Restoring session" color={Colors.cyan} /></View>;
   return (
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: '#F6FAFD' },
+          contentStyle: { backgroundColor: Colors.bgPrimary },
           animation: 'fade',
         }}
       >

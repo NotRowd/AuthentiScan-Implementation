@@ -1,3 +1,6 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React, { useRef } from 'react';
 import {
   Animated,
@@ -8,8 +11,7 @@ import {
   TextStyle,
   ActivityIndicator,
 } from 'react-native';
-import Colors from '../../constants/Colors';
-import Typography from '../../constants/Typography';
+import Typography, { poppinsFamily } from '../../constants/Typography';
 import Spacing from '../../constants/Spacing';
 
 interface CyberButtonProps {
@@ -46,6 +48,8 @@ const CyberButton: React.FC<CyberButtonProps> = ({
   icon,
   iconPosition = 'left',
 }) => {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -77,6 +81,7 @@ const CyberButton: React.FC<CyberButtonProps> = ({
     styles[`label_${size}`],
     styles[`label_${variant}`],
     textStyle,
+    (disabled||loading)&&{color:Colors.disabledText},
   ];
 
   return (
@@ -94,14 +99,14 @@ const CyberButton: React.FC<CyberButtonProps> = ({
         {loading ? (
           <ActivityIndicator
             size="small"
-            color={variant === 'primary' ? Colors.textInverse : Colors.cyan}
+            color={disabled||loading?Colors.disabledText:variant === 'primary' ? Colors.onAction : Colors.cyan}
           />
         ) : (
           <>
             {icon && iconPosition === 'left' && (
               <React.Fragment>{icon}</React.Fragment>
             )}
-            <Text style={labelStyle}>{label}</Text>
+            <Text style={[labelStyle, {fontFamily:poppinsFamily((StyleSheet.flatten(labelStyle) as TextStyle)?.fontWeight)}]}>{label}</Text>
             {icon && iconPosition === 'right' && (
               <React.Fragment>{icon}</React.Fragment>
             )}
@@ -112,7 +117,7 @@ const CyberButton: React.FC<CyberButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   base: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -130,13 +135,13 @@ const styles = StyleSheet.create({
 
   // --- Variants ---
   variant_primary: {
-    backgroundColor: Colors.cyan,
-    borderColor: Colors.cyan,
+    backgroundColor: Colors.action,
+    borderColor: Colors.action,
     shadowColor: Colors.cyan,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
   },
   variant_secondary: {
     backgroundColor: Colors.glassBg,
@@ -152,7 +157,7 @@ const styles = StyleSheet.create({
   },
 
   disabled: {
-    opacity: 0.45,
+    backgroundColor:Colors.disabled, borderColor:Colors.border,
   },
 
   // --- Labels ---
@@ -165,7 +170,7 @@ const styles = StyleSheet.create({
   label_md: { fontSize: Typography.size.sm },
   label_lg: { fontSize: Typography.size.base },
 
-  label_primary: { color: Colors.textInverse },
+  label_primary: { color: Colors.onAction },
   label_secondary: { color: Colors.cyan },
   label_danger: { color: Colors.fake },
   label_ghost: { color: Colors.textSecondary },

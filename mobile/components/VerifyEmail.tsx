@@ -1,9 +1,11 @@
+import {useTheme} from '../context/ThemeContext';
+import type {ColorPalette} from '../constants/Colors';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { apiRequest } from '../services/api/client';
 import { useAuthContext } from '../context/AuthContext';
-import Colors from '../constants/Colors';
+import AccountLayout,{AccountField} from './AccountLayout';
 import CyberButton from './ui/CyberButton';
 import CyberText from './ui/CyberText';
 
@@ -11,6 +13,8 @@ type Verification = { data: { masked_email?: string; verified: boolean; sent: bo
 const endpoint = '/api/v1/auth/email-verification';
 
 export default function VerifyEmail() {
+ const {colors:Colors}=useTheme();
+
   const { refreshAccount, logout } = useAuthContext();
   const [code, setCode] = useState('');
   const [email, setEmail] = useState('');
@@ -75,18 +79,12 @@ export default function VerifyEmail() {
     }
   }
 
-  return <SafeAreaView style={{ flex: 1, backgroundColor: Colors.bgPrimary }}>
-    <ScrollView contentContainerStyle={{ padding: 24, gap: 16 }} keyboardShouldPersistTaps="handled">
-      <CyberText variant="h3">Verify your email</CyberText>
-      <CyberText variant="bodySmall">Request a code, then enter the six digits sent to {email || 'your account email'}.</CyberText>
-      <CyberButton label={resendAfter ? `Resend in ${resendAfter}s` : 'Send verification code'}
-        disabled={busy || resendAfter > 0} onPress={() => run(false)} />
-      <TextInput accessibilityLabel="Verification code" value={code} onChangeText={value => setCode(value.replace(/\D/g, ''))}
-        keyboardType="number-pad" autoComplete="one-time-code" maxLength={6}
-        style={{ color: Colors.textPrimary, backgroundColor: Colors.bgSecondary, padding: 14, borderRadius: 8 }} />
-      <CyberButton label="Confirm email" disabled={busy || code.length !== 6} onPress={() => run(true)} />
-      {!!message && <CyberText variant="bodySmall">{message}</CyberText>}
-      <CyberButton label="Log out" variant="secondary" disabled={busy} onPress={() => { void logout().catch(() => {}); }} />
-    </ScrollView>
-  </SafeAreaView>;
+  return <AccountLayout title="Verify your email" subtitle="Enter the six-digit code to finish setting up your account.">
+    <CyberText variant="bodySmall">Check the inbox and spam folder for {email||'your account email'}. Use the newest verification code.</CyberText>
+    <AccountField label="Verification code" value={code} onChangeText={value=>setCode(value.replace(/\D/g,''))} keyboardType="number-pad" autoComplete="one-time-code" maxLength={6} editable={!busy}/>
+    <CyberButton label={busy?'Please wait…':'Confirm email'} loading={busy} disabled={busy||code.length!==6} onPress={()=>run(true)}/>
+    {!!message&&<CyberText variant="bodySmall">{message}</CyberText>}
+    <CyberButton label={resendAfter?`Resend available in ${resendAfter}s`:'Resend code'} variant="secondary" disabled={busy||resendAfter>0} onPress={()=>run(false)}/>
+    <CyberButton label="Sign out" variant="ghost" disabled={busy} onPress={()=>{void logout().catch(()=>{});}}/>
+  </AccountLayout>;
 }

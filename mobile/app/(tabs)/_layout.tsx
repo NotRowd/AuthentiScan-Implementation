@@ -1,8 +1,10 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import { Tabs, Redirect } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
-import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import Typography from '../../constants/Typography';
 
@@ -18,6 +20,8 @@ import Typography from '../../constants/Typography';
  * Uses a custom light tab bar with a prominent scan action.
  */
 export default function TabsLayout() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const { isLoading, isAuthenticated } = useAuth();
   if (isLoading) return null;
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
@@ -79,7 +83,7 @@ export default function TabsLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   tabBar: {
     backgroundColor: 'transparent',
     borderTopWidth: 1,
@@ -96,7 +100,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    backgroundColor: Colors.bgSecondary,
   },
   tabBarLabel: {
     fontSize: Typography.size.xs,

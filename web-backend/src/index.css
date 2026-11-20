@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 @layer components {
-  .button-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed; }
-  .button-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-slate-200 transition-colors hover:border-brand-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed; }
-  .eyebrow { @apply text-xs font-semibold uppercase tracking-[0.18em] text-brand-300; }
-  .section-heading { @apply text-2xl sm:text-3xl font-bold tracking-tight text-white; }
+  .button-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-action px-5 py-3 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover disabled:opacity-100 disabled:bg-disabled disabled:text-disabled-ink disabled:border-line disabled:cursor-not-allowed; }
+  .button-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-control bg-surface px-4 py-3 text-sm font-medium text-ink-secondary transition-colors hover:border-accent hover:text-on-action disabled:opacity-100 disabled:bg-disabled disabled:text-disabled-ink disabled:border-line disabled:cursor-not-allowed; }
+  .eyebrow { @apply text-xs font-semibold uppercase tracking-[0.18em] text-accent; }
+  .section-heading { @apply text-2xl sm:text-3xl font-bold tracking-tight text-on-action; }
 }
-.skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; padding: 12px 20px; background: #4f46e5; border-radius: 8px; color: white; }
+.skip-link { position: fixed; top: -100px; left: 16px; z-index: 100; padding: 12px 20px; background:var(--action); border-radius: 8px; color:var(--on-action); }
 .skip-link:focus { top: 8px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
@@ -16,10 +16,10 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased min-h-screen selection:bg-brand-500 selection:text-white;
+    @apply font-sans antialiased min-h-screen selection:bg-action selection:text-on-action;
   }
   :where(button, a, input, select, textarea):focus-visible {
-    outline: 2px solid #818cf8;
+    outline:2px solid var(--focus);
     outline-offset: 3px;
   }
 }
@@ -30,25 +30,25 @@
 
 /* Custom UI Utilities */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
+  background:rgb(var(--surface-rgb) / 95%);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border:1px solid var(--line);
 }
 
 .glass-card {
-  background: rgba(30, 41, 59, 0.5);
+  background:rgb(var(--surface-rgb) / 95%);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border:1px solid var(--line);
 }
 
 .glass-card:hover {
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color:var(--line);
 }
 
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-400 via-indigo-300 to-cyan-400;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-action via-accent-soft to-action;
 }
 
 .gradient-border {
@@ -63,15 +63,20 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background:var(--surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background:var(--line);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background:var(--line);
 }
 
+/* Shared account and feedback actions. */
+@layer components {
+  .btn { @apply inline-flex items-center justify-center rounded-xl border border-control px-4 py-2.5 text-sm font-semibold text-ink-secondary hover:bg-canvas disabled:opacity-100 disabled:bg-disabled disabled:text-disabled-ink disabled:border-line disabled:cursor-not-allowed; }
+  .btn-primary { @apply border-accent bg-action text-on-action hover:bg-action-hover; }
+}

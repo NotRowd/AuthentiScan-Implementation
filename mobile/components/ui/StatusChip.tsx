@@ -1,7 +1,9 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import CyberText from './CyberText';
-import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import type { Verdict, SeverityLevel } from '../../types';
 
@@ -9,6 +11,8 @@ import type { Verdict, SeverityLevel } from '../../types';
 
 interface VerdictChipProps {
   verdict: Verdict;
+  status?: string;
+  hasAnalysis?: boolean;
   style?: ViewStyle;
 }
 
@@ -16,7 +20,9 @@ interface VerdictChipProps {
  * StatusChip — Verdict variant
  * Shows AUTHENTIC / AI-GENERATED / UNCERTAIN with colour coding.
  */
-export const VerdictChip: React.FC<VerdictChipProps> = ({ verdict, style }) => {
+export const VerdictChip: React.FC<VerdictChipProps> = ({ verdict, style, status, hasAnalysis }) => {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const config: Record<Verdict, { label: string; color: string; bg: string }> = {
     authentic: {
       label: 'AUTHENTIC',
@@ -25,17 +31,17 @@ export const VerdictChip: React.FC<VerdictChipProps> = ({ verdict, style }) => {
     },
     ai_generated: {
       label: 'AI-GENERATED',
-      color: Colors.fake,
-      bg: Colors.fakeDim,
+      color: Colors.ai,
+      bg: Colors.aiDim,
     },
     uncertain: {
       label: 'UNCERTAIN',
-      color: Colors.textSecondary,
-      bg: 'rgba(140, 160, 194, 0.12)',
+      color: Colors.warning,
+      bg: Colors.warningDim,
     },
   };
 
-  const { label, color, bg } = config[verdict];
+  const {label,color,bg}=hasAnalysis===false ? {label:status==='failed'?'FAILED':status==='processing'?'PROCESSING':'QUEUED',color:Colors.textSecondary,bg:Colors.bgTertiary} : config[verdict];
 
   return (
     <View
@@ -65,9 +71,11 @@ interface SeverityChipProps {
  * Shows LOW / MEDIUM / HIGH manipulation severity.
  */
 export const SeverityChip: React.FC<SeverityChipProps> = ({ severity, style }) => {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const config: Record<SeverityLevel, { color: string; bg: string }> = {
     low: { color: Colors.authentic, bg: Colors.authenticDim },
-    medium: { color: Colors.severityMedium, bg: 'rgba(245, 158, 11, 0.12)' },
+    medium: { color: Colors.severityMedium, bg: Colors.warningDim },
     high: { color: Colors.fake, bg: Colors.fakeDim },
   };
 
@@ -89,7 +97,7 @@ export const SeverityChip: React.FC<SeverityChipProps> = ({ severity, style }) =
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   chip: {
     paddingVertical: 4,
     paddingHorizontal: Spacing.sm,

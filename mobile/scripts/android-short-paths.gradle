@@ -1,0 +1,14 @@
+// CMake hashes long source paths into shorter object paths on Windows.
+// Apply to every native library as well as the app; a SUBST drive alone is
+// insufficient because the Android Gradle plugin canonicalizes project paths.
+gradle.beforeProject { project ->
+    ['com.android.application', 'com.android.library'].each { pluginId ->
+        project.plugins.withId(pluginId) {
+            def android = project.extensions.getByName('android')
+            android.defaultConfig.externalNativeBuild.cmake.arguments.add('-DCMAKE_OBJECT_PATH_MAX=' + (pluginId == 'com.android.application' ? '260' : '240'))
+            def stagingRoot = System.getenv('AUTHENTISCAN_CXX_ROOT') ?: new File(gradle.startParameter.currentDir, '../../../output/android-cxx').absolutePath
+            if (pluginId == 'com.android.application') stagingRoot = new File(gradle.startParameter.currentDir, '../../../.c').absolutePath
+            android.externalNativeBuild.cmake.buildStagingDirectory = new File(stagingRoot, Integer.toHexString(project.path.hashCode()))
+        }
+    }
+}

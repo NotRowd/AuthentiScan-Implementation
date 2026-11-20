@@ -1,0 +1,226 @@
+[
+  {
+    "sample": "project-logo",
+    "raw": "{\n  \"image_type\": \"logo_graphic\",\n  \"description\": \"The image is a logo for 'AuthentiScan' featuring a blue shield with a graphic of a camera, a magnifying glass, and a picture of a landscape. The logo has a circular design with a blue and cyan border. The text 'AuthentiScan' is written in a curved font above the shield.\",\n  \"findings\": {\n    \"eyes\": {\n      \"status\": \"unable_to_assess\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"shape\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"texture\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"lighting\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"scene\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    }\n  }\n}",
+    "features": {
+      "schema_version": 1,
+      "review_version": "visual-features-v1",
+      "status": "completed",
+      "model_version": "qwen3-vl-2b-q4km-f16-review-v1",
+      "model_revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+      "input_sha256": "453470018d73660ea1fc0060a23a0c8e585a1f3d6d1431c406bb3ac9c318a7b9",
+      "findings": [
+        {
+          "category": "eyes",
+          "status": "unable_to_assess",
+          "observation": "Not enough reliable model detail to assess this feature."
+        },
+        {
+          "category": "shape",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "texture",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "lighting",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "scene",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        }
+      ],
+      "changes_verdict": false,
+      "classifier_reason": false,
+      "validation_status": "not_validated"
+    },
+    "scene": {
+      "schema_version": 1,
+      "status": "available",
+      "assessment": "tentative",
+      "model_version": "qwen3-vl-2b-q4km-f16-review-v1",
+      "model_revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+      "input_sha256": "453470018d73660ea1fc0060a23a0c8e585a1f3d6d1431c406bb3ac9c318a7b9",
+      "observation": "The image is a logo for 'AuthentiScan' featuring a blue shield with a graphic of a camera, a magnifying glass, and a picture of a landscape. The logo has a circular design with a blue and cyan border. The text 'AuthentiScan' is written in a curved font above the shield.",
+      "explanation_version": 3,
+      "image_type": "logo",
+      "visual_assessment": "The model reported no clear visual concern in the features it could assess. This does not establish authenticity.",
+      "disclaimer": "Tentative model observation; it may miss or invent details. An unusual scene is not proof of AI generation or manipulation.",
+      "changes_verdict": false
+    }
+  },
+  {
+    "sample": "sheep-original",
+    "raw": "{\n  \"image_type\": \"photograph_like\",\n  \"description\": \"A photograph of several sheep standing on a grassy area next to a brick building. The sheep are in various positions, with some facing the camera and others turned away. The lighting appears to be natural daylight, and the background includes a fence and some structures.\",\n  \"findings\": {\n    \"eyes\": {\n      \"status\": \"possible_concern\",\n      \"observation\": \"The eyes of the sheep on the left appear to be dark and somewhat obscured, possibly due to the wool and the angle of the photo, but there is no clear indication of a visible anomaly.\",\n      \"location\": \"left sheep\"\n    },\n    \"shape\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"texture\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"lighting\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"scene\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    }\n  }\n}",
+    "features": {
+      "schema_version": 1,
+      "review_version": "visual-features-v1",
+      "status": "completed",
+      "model_version": "qwen3-vl-2b-q4km-f16-review-v1",
+      "model_revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+      "input_sha256": "a0f7d2ca992ee36b369d78b232a08e9e2aeacb306c77a49b5d8e72be9d0f8102",
+      "findings": [
+        {
+          "category": "eyes",
+          "status": "possible_concern",
+          "observation": "The eyes of the sheep on the left appear to be dark and somewhat obscured, possibly due to the wool and the angle of the photo, but there is no clear indication of a visible anomaly."
+        },
+        {
+          "category": "shape",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "texture",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "lighting",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "scene",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        }
+      ],
+      "changes_verdict": false,
+      "classifier_reason": false,
+      "validation_status": "not_validated"
+    },
+    "scene": {
+      "schema_version": 1,
+      "status": "available",
+      "assessment": "tentative",
+      "model_version": "qwen3-vl-2b-q4km-f16-review-v1",
+      "model_revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+      "input_sha256": "a0f7d2ca992ee36b369d78b232a08e9e2aeacb306c77a49b5d8e72be9d0f8102",
+      "observation": "A photograph of several sheep standing on a grassy area next to a brick building. The sheep are in various positions, with some facing the camera and others turned away. The lighting appears to be natural daylight, and the background includes a fence and some structures.",
+      "explanation_version": 3,
+      "image_type": "photograph",
+      "visual_assessment": "The eyes of the sheep on the left appear to be dark and somewhat obscured, possibly due to the wool and the angle of the photo, but there is no clear indication of a visible anomaly.",
+      "disclaimer": "Tentative model observation; it may miss or invent details. An unusual scene is not proof of AI generation or manipulation.",
+      "changes_verdict": false
+    }
+  },
+  {
+    "sample": "fence-original",
+    "raw": "{\n  \"image_type\": \"photograph_like\",\n  \"description\": \"A red octagonal stop sign is mounted on a chain-link fence, with a grassy area and palm trees visible behind it. The scene appears to be outdoors in a sunny location with a building in the background.\",\n  \"findings\": {\n    \"eyes\": {\n      \"status\": \"unable_to_assess\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"shape\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"texture\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"lighting\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"scene\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    }\n  }\n}",
+    "features": {
+      "schema_version": 1,
+      "review_version": "visual-features-v1",
+      "status": "completed",
+      "model_version": "qwen3-vl-2b-q4km-f16-review-v1",
+      "model_revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+      "input_sha256": "692e6d7f61e5955059a0e5a4b440c3c58944e57e942142bf43589c216daa77fa",
+      "findings": [
+        {
+          "category": "eyes",
+          "status": "unable_to_assess",
+          "observation": "Not enough reliable model detail to assess this feature."
+        },
+        {
+          "category": "shape",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "texture",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "lighting",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "scene",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        }
+      ],
+      "changes_verdict": false,
+      "classifier_reason": false,
+      "validation_status": "not_validated"
+    },
+    "scene": {
+      "schema_version": 1,
+      "status": "available",
+      "assessment": "tentative",
+      "model_version": "qwen3-vl-2b-q4km-f16-review-v1",
+      "model_revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+      "input_sha256": "692e6d7f61e5955059a0e5a4b440c3c58944e57e942142bf43589c216daa77fa",
+      "observation": "A red octagonal stop sign is mounted on a chain-link fence, with a grassy area and palm trees visible behind it. The scene appears to be outdoors in a sunny location with a building in the background.",
+      "explanation_version": 3,
+      "image_type": "photograph",
+      "visual_assessment": "The model reported no clear visual concern in the features it could assess. This does not establish authenticity.",
+      "disclaimer": "Tentative model observation; it may miss or invent details. An unusual scene is not proof of AI generation or manipulation.",
+      "changes_verdict": false
+    }
+  },
+  {
+    "sample": "fence-edited",
+    "raw": "{\n  \"image_type\": \"photograph_like\",\n  \"description\": \"A chain-link fence with a red octagonal stop sign featuring a black arrow pointing to the left is visible. The sign is positioned in a grassy area behind the fence, with palm trees and a building in the background. There is some litter on the ground and a green hedge on the right side of the image.\",\n  \"findings\": {\n    \"eyes\": {\n      \"status\": \"unable_to_assess\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"shape\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"texture\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"lighting\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    },\n    \"scene\": {\n      \"status\": \"no_clear_concern\",\n      \"observation\": \"\",\n      \"location\": \"\"\n    }\n  }\n}",
+    "features": {
+      "schema_version": 1,
+      "review_version": "visual-features-v1",
+      "status": "completed",
+      "model_version": "qwen3-vl-2b-q4km-f16-review-v1",
+      "model_revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+      "input_sha256": "867d37d16f5e1144e23ec1e7dd68ed0f339ec865244bc323ea0f2435be36d686",
+      "findings": [
+        {
+          "category": "eyes",
+          "status": "unable_to_assess",
+          "observation": "Not enough reliable model detail to assess this feature."
+        },
+        {
+          "category": "shape",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "texture",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "lighting",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        },
+        {
+          "category": "scene",
+          "status": "no_clear_concern",
+          "observation": "The visual-review model reported no clear inconsistency in this feature. This does not confirm authenticity."
+        }
+      ],
+      "changes_verdict": false,
+      "classifier_reason": false,
+      "validation_status": "not_validated"
+    },
+    "scene": {
+      "schema_version": 1,
+      "status": "available",
+      "assessment": "tentative",
+      "model_version": "qwen3-vl-2b-q4km-f16-review-v1",
+      "model_revision": "52d6c8ffea26cc873ac5ad116f8631268d7eb503",
+      "input_sha256": "867d37d16f5e1144e23ec1e7dd68ed0f339ec865244bc323ea0f2435be36d686",
+      "observation": "A chain-link fence with a red octagonal stop sign featuring a black arrow pointing to the left is visible. The sign is positioned in a grassy area behind the fence, with palm trees and a building in the background. There is some litter on the ground and a green hedge on the right side of the image.",
+      "explanation_version": 3,
+      "image_type": "photograph",
+      "visual_assessment": "The model reported no clear visual concern in the features it could assess. This does not establish authenticity.",
+      "disclaimer": "Tentative model observation; it may miss or invent details. An unusual scene is not proof of AI generation or manipulation.",
+      "changes_verdict": false
+    }
+  }
+]

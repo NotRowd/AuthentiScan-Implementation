@@ -1,0 +1,18 @@
+{
+  "model_version": "loyd-classifier-v1-research",
+  "positive_class": "authentic",
+  "decision_rule": "manuscript_min_score_v1",
+  "minimum_class_score": 0.6,
+  "threshold": 0.5,
+  "uncertainty_margin": 0.1,
+  "gradcam": {
+    "base_model_layer": "efficientnetb0",
+    "last_conv_layer": "top_conv",
+    "pooling_layer": "global_average_pooling2d",
+    "dropout_layer": "dropout",
+    "output_layer": "dense"
+  },
+  "model_sha256": "67ec9aa9f2a157b2118f38503c8de69c22d2de26ef56258afbbc527be2a53aff",
+  "preprocessing_version": "exif-white-rgb-pillow-bilinear-224-v2",
+  "selection": "AuthentiScan-FINAL.docx Scope and Limitation: Uncertain if both class scores are below 60%. Exact 60% selects that class. Manuscript alignment, not probability calibration or a claim of improved accuracy."
+}

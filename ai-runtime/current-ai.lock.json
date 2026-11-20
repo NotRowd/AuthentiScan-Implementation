@@ -1,0 +1,104 @@
+{
+  "release": "authentiscan-2026-10-10-manuscript60",
+  "created": "2026-10-10",
+  "note": "Reproducibility baseline only. Localization failed validation; scene observations are tentative. No retraining or accuracy approval.",
+  "files": [
+    {
+      "sha256": "8b542fdf5c129d68327ee83be35618f5f2d594d291ff8a9011ede77bf34f315e",
+      "path": "ai-runtime/start-loyd-ai.ps1"
+    },
+    {
+      "sha256": "5ea21f2fb4cee274d1ddd0d848909ff0d3a21dedd15100f68eb7d65e3c73f83b",
+      "path": "ai-runtime/loyd-v1/policy.manuscript-60.json"
+    },
+    {
+      "sha256": "3d536cf198a86171f038c660b56dc5277fc0d6816b98ccf0d775666d41e77c23",
+      "path": "ai-runtime/loyd-v1/service/app.py"
+    },
+    {
+      "sha256": "b7ceb31bb3b85cbfee35e2de1619dde8014b8f4249c7352052129b52053ee917",
+      "path": "ai-runtime/loyd-v1/service/policy.py"
+    },
+    {
+      "sha256": "3b405e099dbf51e2765a98480cbe126b82cea52efd4498a43e7b78b58861d9b4",
+      "path": "ai-runtime/loyd-v1/service/preprocessing.py"
+    },
+    {
+      "sha256": "43549365c7fd44c8ca3e7ebc878e0440d4b87596bccd7084f96a7cf2df5ee3b9",
+      "path": "ai-runtime/loyd-v1/service/gradcam.py"
+    },
+    {
+      "sha256": "67ec9aa9f2a157b2118f38503c8de69c22d2de26ef56258afbbc527be2a53aff",
+      "path": "ai-work/2026-10-04/loyd-return-verified/runs/classifier-v1/finetune.keras"
+    },
+    {
+      "sha256": "2f4782cdc32604c776dc1ec79d24cdadc8f880d1c38cd9ff4b76b3e6c54c69c9",
+      "path": "firebase-local/detector/model.py"
+    },
+    {
+      "sha256": "fd886274540e7fb55314b252300b3f1fe44bdb160a5f0f0f4cfd1004bc19af6e",
+      "path": "firebase-local/detector/service.py"
+    },
+    {
+      "sha256": "a79551df90c79834bcd3bb3845ef9d966b5449a3a9b2833ae8404778ca5d65d2",
+      "path": "firebase-local/.detector-models/checkpoints/ssdlite320_mobilenet_v3_large_coco-a79551df.pth"
+    },
+    {
+      "sha256": "f5ac9ba68b7d6f3a36a009e676117db66f0ac3150c52820de8cb96c4def77656",
+      "path": "ai-localization/experimental_service.py"
+    },
+    {
+      "sha256": "9bb7525656d7b738f317bb4a0871f5fec7c23dd243b8f013d685b3ccf7dfa6dc",
+      "path": "ai-localization/localizer_service.py"
+    },
+    {
+      "sha256": "4325b686fc8fe736f130f8fb0c7b953683fe60514a50e2c75b635013ee99c310",
+      "path": "ai-localization/supervised_localizer.py"
+    },
+    {
+      "sha256": "d23d95f538439cc5e836f11b827f7c13bdc5bf1e18bbcca7ca8a30b5ff7f0e50",
+      "path": "ai-localization/localization.py"
+    },
+    {
+      "sha256": "a5568dc4839b10c72074e70978ffe435e66560e2f13d03d5a931e0277068abad",
+      "path": "ai-localization/runs/supervised-cpu-2026-10-10/training-output/best-head.pt"
+    },
+    {
+      "sha256": "74050e3fb242813511f28ac3ca8b353a1f53099718ea01b38641de3d8cb59ada",
+      "path": "ai-localization/runs/supervised-cpu-2026-10-10/training-output/validation-report.json"
+    },
+    {
+      "sha256": "b938bf1bc15cd2ec0feacfe3a1bb553fe8ea9ca46a7e1d8d00217f29aef60cd9",
+      "path": "ai-localization/weights/hub/checkpoints/dinov2_vits14_pretrain.pth"
+    },
+    {
+      "sha256": "f6b8860f497caf051fe617432f33a731d87db809095ca7a89a884ef02adc8973",
+      "path": "ai-scene/scene_service.py"
+    },
+    {
+      "sha256": "8990f5e0671ccaadb76fac2f56d219cda0160f4cd6b911ea7356fcd344f39efa",
+      "path": "ai-scene/prepare_model.py"
+    },
+    {
+      "sha256": "26511703aba46a541bd50e482a4d173b6e8ec79ba225fecd9e3cceaa4f4d6b6c",
+      "path": "ai-scene/weights/smolvlm-500m/manifest.json"
+    },
+    {
+      "sha256": "d60ec01672b861b191674094b5b93494d2efee5b8c33dd0fb6fc331470e6ee83",
+      "path": "firebase-local/server/ai-contract.mjs"
+    },
+    {
+      "sha256": "c915929135e2031d0143fa81b8a684f4622301bf7cbfe9538fcc22f8390ff96d",
+      "path": "firebase-local/server/current-ai-release.mjs"
+    },
+    {
+      "sha256": "39cc08accda63766c102bae914d924bfa4b4e875777eeb2e47c97066454b7240",
+      "path": "firebase-local/shared/scene-contract.mjs"
+    },
+    {
+      "sha256": "56e4231c1ba59c000484bf34a273813c808f67bc56ac2903d973a99d23f44e90",
+      "path": "firebase-local/shared/localization-contract.mjs"
+    }
+  ],
+  "scene_manifest": "ai-scene/weights/smolvlm-500m/manifest.json"
+}

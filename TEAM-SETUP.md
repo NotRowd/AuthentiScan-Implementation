@@ -52,19 +52,20 @@ npx.cmd expo start --clear
 ```
 
 Do not overwrite an existing `.env.local`; edit it instead. The example defaults
-to OFFLINE mode for isolated UI work. Offline results are simulations, not AI
-analysis, and offline accounts do not sync to Firebase.
+to the existing AWS HTTPS API, which uses shared live accounts and scan allowances.
+Set `EXPO_PUBLIC_API_MODE=offline` only for an isolated simulation; offline results
+are not AI analysis and do not sync.
 
-For real integration, the mobile app currently targets the MySQL/JWT API in
-`legacy-backend/`, usually port 5000. **Do not point it at the Firebase web API
-on port 5002 and expect login to work.** Mobile migration is a separate task.
-Read mobile/BACKEND-INTEGRATION.md and mobile/OFFLINE-COMPATIBILITY.md; old D:
-paths there describe Kent's original folders, not required clone locations.
+For current integration, use `EXPO_PUBLIC_API_MODE=backend` and a plain HTTPS
+origin in `EXPO_PUBLIC_API_BASE_URL`. The mobile app uses the current web/backend
+account and scan API, not `legacy-backend/`. Read mobile/BACKEND-INTEGRATION.md
+and mobile/ANDROID-APK.md. Older offline/legacy documentation describes historical
+behavior; old D: paths describe Kent's original folders, not required clone locations.
 Use your development PC's LAN address for a physical phone; 10.0.2.2 is for
 Android emulators. Localhost on a phone means the phone, not your computer.
 Follow mobile/AGENTS.md before changing mobile code.
 
-## 4. Legacy backend (only for existing mobile integration)
+## 4. Legacy backend (historical reference)
 
 Use a dedicated local MySQL development database, never an existing production
 database. Review `legacy-backend/database/schema.sql` before importing it.

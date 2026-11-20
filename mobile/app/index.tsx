@@ -1,3 +1,6 @@
+import {useTheme,useThemedStyles} from '../context/ThemeContext';
+import type {ColorPalette} from '../constants/Colors';
+import {createStyles} from '../constants/createStyles';
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
@@ -11,7 +14,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import CyberText from '../components/ui/CyberText';
 import ScanGrid from '../components/ui/ScanGrid';
 import GlowEffect from '../components/ui/GlowEffect';
-import Colors from '../constants/Colors';
 import { useAuth } from '../hooks/useAuth';
 
 /**
@@ -24,6 +26,8 @@ import { useAuth } from '../hooks/useAuth';
  * - Auto-navigates after session check
  */
 export default function SplashScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const { isAuthenticated, isLoading, user } = useAuth();
   const needsVerification = user?.emailVerificationRequired === true;
 
@@ -116,7 +120,7 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']}
+        colors={[Colors.bgPrimary, Colors.bgTertiary, Colors.bgPrimary]}
         locations={[0, 0.5, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -197,7 +201,7 @@ export default function SplashScreen() {
 const RADAR_SIZE = 180;
 const LOGO_SIZE = 184;
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   container: {
     flex: 1,
     backgroundColor: Colors.bgPrimary,
@@ -239,7 +243,7 @@ const styles = StyleSheet.create({
     // Gradient-like sweep via opacity
     opacity: 0.25,
   },
-  logo: { width: LOGO_SIZE, height: LOGO_SIZE },
+  logo: {backgroundColor:Colors.logoPlate,borderRadius:32, width: LOGO_SIZE, height: LOGO_SIZE },
   brandingContainer: {
     alignItems: 'center',
     gap: 6,

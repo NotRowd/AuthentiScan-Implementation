@@ -2,7 +2,7 @@
 export type ApiVerdict = 'authentic' | 'ai_generated' | 'uncertain';
 export type ApiScanStatus = 'queued' | 'processing' | 'completed' | 'failed';
 export type ApiResponse<T> = { success: true; message?: string; data: T } | { success: false; message: string };
-export type RegisterRequest = { firstName: string; lastName: string; email: string; password: string };
+export type RegisterRequest = { firstName: string; lastName: string; email: string; password: string; challenge_id?: string; code?: string; accept_terms?: boolean };
 export type ApiPlan = { name: string; scan_limit: number | null; billing_cycle?: string; expires_at?: string };
 export type ApiUser = { user_id: number | string; first_name: string; last_name: string; email: string; plan: ApiPlan | null; email_verification_required?: boolean; email_verified?: boolean };
 export type AuthResponse = ApiResponse<{ user: ApiUser; token: string }>;
@@ -15,7 +15,7 @@ export type ApiObjectDetection = { status: string; model_version?: string; objec
 export type ApiAnalysis = {
   decision_rule?: string; minimum_class_score?: number;
   provider?: string; provider_label?: string; provider_label_confidence?: number;
-  minimum_label_confidence?: number;
+  minimum_label_confidence?: number; display_grouping?: string; original_verdict?: ApiVerdict; original_decision_rule?: string; confidence_kind?: string;
   verdict: ApiVerdict; confidence_score: number; authentic_score: number | null; ai_generated_score: number | null;
   readable_explanation: string; heatmap_url: string | null; model_version: string; analyzed_at: string;
 };

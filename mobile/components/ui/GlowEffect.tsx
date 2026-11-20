@@ -1,6 +1,8 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View, ViewStyle } from 'react-native';
-import Colors from '../../constants/Colors';
 
 interface GlowEffectProps {
   children: React.ReactNode;
@@ -21,11 +23,13 @@ interface GlowEffectProps {
  */
 const GlowEffect: React.FC<GlowEffectProps> = ({
   children,
-  color = Colors.cyan,
+  color,
   intensity = 'medium',
   pulse = true,
   style,
 }) => {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const pulseAnim = useRef(new Animated.Value(0.6)).current;
 
   const glowRadius = intensity === 'subtle' ? 8 : intensity === 'medium' ? 16 : 28;
@@ -61,7 +65,7 @@ const GlowEffect: React.FC<GlowEffectProps> = ({
           {
             borderRadius: 999,
             backgroundColor: 'transparent',
-            shadowColor: color,
+            shadowColor: color ?? Colors.cyan,
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: glowOpacity,
             shadowRadius: glowRadius,
@@ -74,7 +78,7 @@ const GlowEffect: React.FC<GlowEffectProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   wrapper: {
     position: 'relative',
     alignItems: 'center',

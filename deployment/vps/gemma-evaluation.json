@@ -1,0 +1,11 @@
+{
+  "repository": "ggml-org/gemma-3-4b-it-GGUF",
+  "revision": "d0976223747697cb51e056d85c532013931fe52e",
+  "license": "gemma",
+  "files": [
+    {"name":"gemma-3-4b-it-Q4_K_M.gguf","bytes":2489757856,"sha256":"882e8d2db44dc554fb0ea5077cb7e4bc49e7342a1f0da57901c0802ea21a0863"},
+    {"name":"mmproj-model-f16.gguf","bytes":851251104,"sha256":"8c0fb064b019a6972856aaae2c7e4792858af3ca4561be2dbf649123ba6c40cb"}
+  ],
+  "production_enabled": false,
+  "accuracy_validated": false
+}

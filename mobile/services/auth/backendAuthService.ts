@@ -4,22 +4,19 @@ import type { MeResponse } from '../api/contracts';
 import { API_ROUTES } from '../api/contracts';
 import { mapMe } from '../api/adapters';
 import { ApiError, apiRequest } from '../api/client';
-import { signIn, signUp, setDisplayName } from '../api/firebaseAuth';
+import { signIn, completeRegistration } from '../api/firebaseAuth';
 import { clearSession, getToken, saveToken, sessionRevision } from '../api/session';
 let busy = false;
-async function authenticate(credentials: AuthCredentials, names?: Pick<RegisterPayload, 'firstName' | 'lastName'>): Promise<AuthServiceResult<User>> {
+async function authenticate(credentials: AuthCredentials): Promise<AuthServiceResult<User>> {
   if (busy) return { success: false, error: 'A sign-in request is already running.' };
   busy = true;
   const version = sessionRevision();
   try {
-    const authenticateAccount = names ? signUp : signIn;
-    const data = await authenticateAccount(credentials.email.trim(), credentials.password);
+    const data = await signIn(credentials.email.trim(), credentials.password);
     if (!data.refreshToken) throw new Error('Firebase did not return a refresh token.');
-    if (names) await setDisplayName(data.idToken, names.firstName + ' ' + names.lastName);
     await saveToken(data.idToken, version, data.refreshToken, Number(data.expiresIn));
     try {
-      if (names) await apiRequest('/api/me', { method: 'POST', json: names });
-      else {
+      {
         try { return { success: true, data: mapMe(await apiRequest<MeResponse>(API_ROUTES.me)) }; }
         catch (error) { if (!(error instanceof ApiError) || error.status !== 404) throw error; }
         const [first, ...last] = (data.displayName?.trim() || 'New User').split(/\s+/);
@@ -32,9 +29,6 @@ async function authenticate(credentials: AuthCredentials, names?: Pick<RegisterP
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Sign-in failed.';
-    if (names && /network|fetch failed|connection reset|abort/i.test(message)) {
-      return { success: false, error: 'Connection interrupted. Registration may already have completed. Try signing in.' };
-    }
     return { success: false, error: message };
   }
   finally { busy = false; }
@@ -44,12 +38,18 @@ export const backendAuthService = {
   login(credentials: AuthCredentials) {
     return authenticate(credentials);
   },
-  register(payload: RegisterPayload) {
+  async register(payload: RegisterPayload) {
     const firstName = payload.firstName.trim(), lastName = payload.lastName.trim();
     if (!firstName || !lastName || firstName.length > 100 || lastName.length > 100 || payload.password.length < 8) {
       return Promise.resolve<AuthServiceResult<User>>({ success: false, error: 'Enter names up to 100 characters and a password of at least eight characters.' });
     }
-    return authenticate(payload, { firstName, lastName });
+    if(!payload.challenge_id||!/^\d{6}$/.test(payload.code||'')||payload.accept_terms!==true)return {success:false as const,error:'Verify your email code before creating an account.'};
+    try{await completeRegistration({...payload,firstName,lastName,challenge_id:payload.challenge_id,code:payload.code!,accept_terms:true});}
+    catch(error){return {success:false as const,error:error instanceof Error?error.message:'Could not confirm registration.'};}
+    // The account/profile now exist and are verified. Sign in normally so secure
+    // storage, refresh tokens and session ownership use the existing flow.
+    const result=await authenticate(payload);
+    return result.success?result:{success:false as const,error:'Your verified account was created. Please sign in with your password to continue.'};
   },
   async logout() { await clearSession(); },
   async getSession(): Promise<User | null> {

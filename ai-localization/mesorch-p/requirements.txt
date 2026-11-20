@@ -1,0 +1,5 @@
+# Install the CUDA torch/torchvision pair first as described in START-HERE.md.
+timm==1.0.22
+numpy==2.4.6
+opencv-python-headless==4.11.0.86
+Pillow==12.3.0

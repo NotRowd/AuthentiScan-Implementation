@@ -1,5 +1,6 @@
 // Server-only Firestore prototype. There is deliberately no browser endpoint
 // that lets a user mark scans completed, refund credits, or grant Pro access.
+import {effectivePlan} from './billing-config.mjs';
 export const LIMIT = 5;
 const DAY = 86400000, OFFSET = 8 * 3600000;
 export function dayWindow(now = Date.now()) {
@@ -25,9 +26,13 @@ export async function reserveScan(db, uid, scanId, now = Date.now(), metadata = 
     if (existing.exists) return existing.data(); // Same operation never charges twice.
     const snapshot = await tx.get(day);
     const used = snapshot.data()?.used || 0;
-    if (used >= LIMIT) throw fail('Daily scan allowance reached', 'DAILY_LIMIT');
-    const record = {...metadata, scan_id: scanId, owner_uid: uid, status: 'processing', allowance_day: window.key, created_at: new Date(now).toISOString(), lease_expires_at:now+300000};
-    tx.set(day, {used: used + 1, limit: LIMIT, resets_at: new Date(window.end).toISOString()});
+    const limit=effectivePlan(account.data(),now).scan_limit;
+    if (limit!==null&&used >= limit) throw fail('Daily scan allowance reached', 'DAILY_LIMIT');
+    const last = account.data().last_scan_number || 0;
+    if(!Number.isSafeInteger(last)||last<0||!Number.isSafeInteger(last+1))throw new Error('Invalid scan counter');
+    const record = {...metadata, scan_id: scanId, scan_number:last+1, owner_uid: uid, status: 'processing', allowance_day: window.key, created_at: new Date(now).toISOString(), lease_expires_at:now+720000};
+    tx.update(user,{last_scan_number:last+1});
+    tx.set(day, {used: used + 1, limit, resets_at: new Date(window.end).toISOString()});
     tx.create(scan, record);
     return record;
   });
@@ -55,7 +60,9 @@ export async function finishScan(db, uid, scanId, status, details = {}) {
 }
 export async function readAllowance(db, uid, now = Date.now()) {
   const window = dayWindow(now);
-  const snapshot = await db.collection('users').doc(uid).collection('allowances').doc(window.key).get();
+  const ref=db.collection('users').doc(uid);
+  const [snapshot,account]=await Promise.all([ref.collection('allowances').doc(window.key).get(),ref.get()]);
+  const plan=effectivePlan(account.data(),now),limit=plan.scan_limit;
   const used = snapshot.data()?.used || 0;
-  return {limit: LIMIT, used, remaining: Math.max(0, LIMIT - used), timezone: 'Asia/Manila', resets_at: new Date(window.end).toISOString()};
+  return {limit, used, remaining: limit===null?null:Math.max(0, limit - used),plan, timezone: 'Asia/Manila', resets_at: new Date(window.end).toISOString()};
 }

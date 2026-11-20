@@ -1,3 +1,6 @@
+import {useTheme,useThemedStyles} from '../context/ThemeContext';
+import type {ColorPalette} from '../constants/Colors';
+import {createStyles} from '../constants/createStyles';
 import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
@@ -8,13 +11,14 @@ import GlassCard from '../components/ui/GlassCard';
 import CyberButton from '../components/ui/CyberButton';
 import CyberText from '../components/ui/CyberText';
 import ScanGrid from '../components/ui/ScanGrid';
-import Colors from '../constants/Colors';
 import Spacing from '../constants/Spacing';
 import Typography from '../constants/Typography';
 import { OFFLINE_MODE } from '../services/api/config';
 import { useAuth } from '../hooks/useAuth';
 
 export default function EditProfileScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const { user, updateProfile } = useAuth();
   const [firstName, setFirstName] = useState(user?.firstName ?? '');
   const [lastName, setLastName] = useState(user?.lastName ?? '');
@@ -37,7 +41,7 @@ export default function EditProfileScreen() {
   };
 
   return <View style={styles.container}>
-    <LinearGradient colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']} style={StyleSheet.absoluteFill} />
+    <LinearGradient colors={[Colors.bgPrimary, Colors.bgTertiary, Colors.bgPrimary]} style={StyleSheet.absoluteFill} />
     <ScanGrid animated={false} />
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -73,6 +77,6 @@ export default function EditProfileScreen() {
   </View>;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgPrimary }, safeArea: { flex: 1 }, keyboard: { flex: 1 }, content: { flexGrow: 1, paddingHorizontal: Spacing.screenPadding, paddingBottom: Spacing['3xl'], gap: Spacing.lg }, header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.md }, backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }, headerSpacer: { width: 36 }, avatar: { width: 84, height: 84, borderRadius: 42, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.glassBorderCyan }, heading: { alignItems: 'center', gap: Spacing.sm }, card: { gap: Spacing.lg }, inputGroup: { gap: Spacing.sm }, inputWrap: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderWidth: 1, borderRadius: Spacing.inputRadius, borderColor: Colors.border, backgroundColor: Colors.glassBg }, input: { flex: 1, color: Colors.textPrimary, fontSize: Typography.size.base, paddingVertical: Spacing.sm }, lockedField: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderWidth: 1, borderRadius: Spacing.inputRadius, borderColor: Colors.border, backgroundColor: Colors.bgTertiary }, lockedText: { flex: 1 }, error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }, errorText: { flex: 1 }, success: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Spacing.sm, backgroundColor: Colors.authenticDim }, fullButton: { width: '100%' }, notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm }, noticeCopy: { flex: 1 },
+const makeStyles = (Colors: ColorPalette) => createStyles({
+  container: { flex: 1, backgroundColor: Colors.bgPrimary }, safeArea: { flex: 1 }, keyboard: { flex: 1 }, content: { flexGrow: 1, paddingHorizontal: Spacing.screenPadding, paddingBottom: Spacing['3xl'], gap: Spacing.lg }, header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.md }, backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }, headerSpacer: { width: 36 }, avatar: { width: 84, height: 84, borderRadius: 42, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.glassBorderCyan }, heading: { alignItems: 'center', gap: Spacing.sm }, card: { gap: Spacing.lg }, inputGroup: { gap: Spacing.sm }, inputWrap: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderWidth: 1, borderRadius: Spacing.inputRadius, borderColor:Colors.control, backgroundColor: Colors.glassBg }, input: { flex: 1, color: Colors.textPrimary, fontSize: Typography.size.base, paddingVertical: Spacing.sm }, lockedField: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderWidth: 1, borderRadius: Spacing.inputRadius, borderColor: Colors.border, backgroundColor: Colors.bgTertiary }, lockedText: { flex: 1 }, error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }, errorText: { flex: 1 }, success: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Spacing.sm, backgroundColor: Colors.authenticDim }, fullButton: { width: '100%' }, notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm }, noticeCopy: { flex: 1 },
 });

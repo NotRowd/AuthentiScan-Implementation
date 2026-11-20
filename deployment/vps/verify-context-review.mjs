@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {db,auth} from '/app/server/firebase.mjs';
+import {normalizeFeatureReview} from '/app/shared/feature-review-contract.mjs';
+import {normalizeScene} from '/app/shared/scene-provider-contract.mjs';
+import {PEOPLE_DIFFERENCE_NOTE} from '/app/shared/visual-finding-quality.mjs';
+const account=await auth.getUserByEmail('kentamielle31@gmail.com');
+const rows=await db.collection('users').doc(account.uid).collection('scans').where('scan_number','==',36).limit(1).get();
+assert.equal(rows.size,1);
+const row=rows.docs[0].data();
+const review=normalizeFeatureReview(row.feature_review,row.file_sha256);
+assert.equal(review.findings.filter(f=>f.status==='possible_concern').length,0);
+assert.equal(review.findings[0].observation,PEOPLE_DIFFERENCE_NOTE);
+const scene=normalizeScene(row.scene_analysis,review.input_sha256);
+assert.match(scene.observation,/graphic image/i);
+console.log('PASS: actual saved scan 36 filters the cross-person eye-color claim and has valid, same-image graphic context. No scan changed.');
+await db.terminate();

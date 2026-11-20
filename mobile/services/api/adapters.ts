@@ -30,7 +30,8 @@ export function mapScan(scan: ApiScan, localImageUri = ''): ScanResult {
   if (analysis && !['authentic', 'ai_generated', 'uncertain'].includes(analysis.verdict)) throw new Error('Unsupported verdict.');
   return {
     id: String(scan.scan_id), imageUri: localImageUri, imagePath: scan.image_url, fileName: scan.original_file_name,
-    analysisProvider: analysis?.provider,
+    analysisProvider: analysis?.provider, analysis: analysis ?? undefined,
+    fileSizeBytes: scan.file_size_bytes, mimeType: scan.mime_type,
     providerReview: scan.provider_review,
     featureReview: scan.feature_review ?? undefined, localization: scan.localization ?? undefined,
     sceneAnalysis: scan.scene_analysis ?? undefined, objectDetection: scan.object_detection ?? undefined,

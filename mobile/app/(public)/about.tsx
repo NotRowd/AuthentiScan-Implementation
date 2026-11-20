@@ -1,3 +1,6 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React from 'react';
 import {
   ScrollView,
@@ -12,7 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import GlassCard from '../../components/ui/GlassCard';
 import CyberText from '../../components/ui/CyberText';
 import ScanGrid from '../../components/ui/ScanGrid';
-import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 
 // ─── Placeholder stat cards ───────────────────────────────────────────────────
@@ -32,10 +34,12 @@ const PLACEHOLDER_STATS = [
  * Stats are clearly marked as placeholders per project guidelines.
  */
 export default function AboutScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']}
+        colors={[Colors.bgPrimary, Colors.bgTertiary, Colors.bgPrimary]}
         style={StyleSheet.absoluteFill}
       />
       <ScanGrid animated={false} />
@@ -148,9 +152,9 @@ export default function AboutScreen() {
               <CyberText variant="body" color={Colors.textPrimary}>
                 why
               </CyberText>
-              . Using Gradient-weighted Class Activation Mapping (Grad-CAM),
-              the app highlights the exact regions of the image that
-              influenced the AI's decision.
+              . When available, the app displays a supplied heatmap and visual
+              observations to support your review. Highlights do not establish
+              exact edited boundaries and may be incorrect.
             </CyberText>
           </GlassCard>
 
@@ -169,7 +173,7 @@ export default function AboutScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   container: {
     flex: 1,
     backgroundColor: Colors.bgPrimary,

@@ -20,7 +20,7 @@ async function create(email) {
   await page.getByRole('button',{name:'Create test account',exact:true}).click();
   await page.locator('#profile-panel').waitFor({state:'visible'});
   await page.locator('#first-name').fill('Browser');await page.locator('#last-name').fill('Test');
-  await page.getByRole('button',{name:'Save profile',exact:true}).click();
+  await page.getByRole('button',{name:'Save changes',exact:true}).click();
   await page.locator('#account-panel').waitFor({state:'visible'});
 }
 try{

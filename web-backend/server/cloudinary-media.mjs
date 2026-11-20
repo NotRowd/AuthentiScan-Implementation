@@ -4,14 +4,15 @@ import {v2 as cloudinary} from 'cloudinary';
 export const CLOUD_NAME='fyicw41z';
 const MAX_BYTES=10*1024*1024;
 const PREFIX='authentiscan-bc704/';
+const CREDENTIALS_PATH=process.env.AUTHENTISCAN_CLOUDINARY_CONFIG_PATH||new URL('../.secrets/cloudinary.json',import.meta.url);
 const mediaError=code=>Object.assign(new Error('Protected cloud media unavailable.'),{code});
 export function mediaId(name){
-  if(typeof name!=='string'||!/^users\/[A-Za-z0-9_-]{1,128}\/(?:scans\/[a-f0-9-]{36}\/(?:original|heatmap\.png)|storage-tests\/[a-f0-9-]{36})$/.test(name))throw new Error('Invalid private media path.');
+  if(typeof name!=='string'||!/^users\/[A-Za-z0-9_-]{1,128}\/(?:scans\/[a-f0-9-]{36}\/(?:original|heatmap\.png|localization-mask\.png)|storage-tests\/[a-f0-9-]{36})$/.test(name))throw new Error('Invalid private media path.');
   return PREFIX+name;
 }
 export function loadCloudinaryCredentials(){
   let c;
-  try{c=JSON.parse(readFileSync(new URL('../.secrets/cloudinary.json',import.meta.url),'utf8'));}
+  try{c=JSON.parse(readFileSync(CREDENTIALS_PATH,'utf8'));}
   catch{throw new Error('Save Cloudinary credentials in .secrets/cloudinary.json.');}
   if(c.cloud_name!==CLOUD_NAME||typeof c.api_key!=='string'||!/^\d+$/.test(c.api_key)||typeof c.api_secret!=='string'||c.api_secret.length<10||c.api_secret.includes('PASTE_'))throw new Error('Cloudinary credentials are incomplete or belong to another cloud.');
   return {cloud_name:CLOUD_NAME,api_key:c.api_key,api_secret:c.api_secret,secure:true};

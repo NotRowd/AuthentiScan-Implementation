@@ -1,3 +1,7 @@
+import AppearanceControl from '../../components/ui/AppearanceControl';
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
@@ -9,7 +13,6 @@ import CyberText from '../../components/ui/CyberText';
 import ScanGrid from '../../components/ui/ScanGrid';
 import { OFFLINE_MODE } from '../../services/api/config';
 import CyberButton from '../../components/ui/CyberButton';
-import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -17,17 +20,16 @@ type SettingsItem = {
   label: string;
   icon: React.ComponentProps<typeof Ionicons>['name'];
   value?: string;
-  route?: '/edit-profile' | '/(public)/pricing';
+  route?: '/edit-profile' | '/checkout';
 };
 
 const GROUPS: { title: string; items: SettingsItem[] }[] = [
   { title: 'ACCOUNT', items: [
     { label: 'Edit Profile', icon: 'person-outline', route: '/edit-profile' },
-    { label: 'Subscription Plan', icon: 'card-outline', route: '/(public)/pricing' },
+    { label: 'Subscription Plan', icon: 'card-outline', route: '/checkout' },
   ] },
   { title: 'PREFERENCES', items: [
     { label: 'Notifications', icon: 'notifications-outline', value: 'Coming soon' },
-    { label: 'Theme', icon: 'color-palette-outline', value: 'Light' },
   ] },
   { title: 'ABOUT', items: [
     { label: 'Terms of Service', icon: 'document-text-outline' },
@@ -37,6 +39,8 @@ const GROUPS: { title: string; items: SettingsItem[] }[] = [
 ];
 
 export default function SettingsScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const { user, logout } = useAuth();
 
   const handleLogout = async () => {
@@ -46,7 +50,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[Colors.bgPrimary, Colors.bgTertiary, Colors.bgPrimary]} style={StyleSheet.absoluteFill} />
       <ScanGrid animated={false} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -71,6 +75,8 @@ export default function SettingsScreen() {
               <Ionicons name="pencil-outline" size={18} color={Colors.cyan} />
             </TouchableOpacity>
           </GlassCard>
+
+          <GlassCard style={{marginBottom:20}}><AppearanceControl/></GlassCard>
 
           {GROUPS.map((group) => (
             <View key={group.title} style={styles.group}>
@@ -105,13 +111,13 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   container: { flex: 1, backgroundColor: Colors.bgPrimary },
   safeArea: { flex: 1 },
   scrollContent: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 16 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 16, paddingBottom: 20 },
   title: { marginTop: 5 },
-  headerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
+  headerIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, marginBottom: 26 },
   avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: Colors.cyanDim, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.glassBorderCyan, overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },

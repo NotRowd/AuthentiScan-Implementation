@@ -1,6 +1,8 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React from 'react';
 import { StyleSheet, View, ViewProps, ViewStyle } from 'react-native';
-import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 
 interface GlassCardProps extends ViewProps {
@@ -31,11 +33,13 @@ const GlassCard: React.FC<GlassCardProps> = ({
   children,
   ...rest
 }) => {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const bgColor =
     variant === 'strong'
       ? Colors.glassBgStrong
       : variant === 'subtle'
-        ? '#F8FBFE'
+        ? Colors.bgTertiary
         : Colors.glassBg;
 
   const borderColor = active ? Colors.glassBorderCyan : Colors.glassBorder;
@@ -54,17 +58,17 @@ const GlassCard: React.FC<GlassCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   card: {
     borderRadius: Spacing.cardRadius,
     borderWidth: 1,
     padding: Spacing.cardPadding,
     // Subtle shadow for depth
-    shadowColor: '#18476B',
+    shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0,
     shadowRadius: 10,
-    elevation: 2,
+    elevation: 0,
   },
 });
 

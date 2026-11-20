@@ -16,8 +16,11 @@ function load(relative) {
     jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true,
   }}).outputText;
   const module = { exports: {} };
-  vm.runInNewContext(code, { module, exports: module.exports, require(name) {
+  vm.runInNewContext(code, { module, exports: module.exports, require(name) {if(name.includes('ThemeContext'))return require('./theme-stub.cjs');
     if (name === 'react' || name === 'react/jsx-runtime') return require(name);
+    if (name === 'expo-font') return { useFonts: () => [true,null] };
+    if (name.includes('createStyles')) return { createStyles: value => value };
+    if (name.endsWith('.ttf')) return 'bundled-font';
     if (name === 'expo-router') return { Stack, Redirect };
     if (name === 'react-native') return { View: 'View', Text: 'Text', ActivityIndicator: 'Loading', StyleSheet: { create: x => x }, Dimensions: { get: () => ({ width: 390, height: 844 }) } };
     if (name.includes('AuthContext')) return { AuthProvider: 'AuthProvider', useAuthContext: () => auth };
@@ -33,7 +36,7 @@ function find(node, match) {
   if (match(node)) return node;
   for (const child of [].concat(node.props?.children || [])) { const result = find(child, match); if (result) return result; }
 }
-function navigation() { return find(Root(), n => n.type?.name === 'Navigation').type(); }
+function navigation() { return find(Root().props.children.type(), n => n.type?.name === 'Navigation').type(); }
 function screens(node) {
   if (!node || node.type === Stack.Protected && !node.props.guard) return [];
   if (node.type === Stack.Screen) return [node.props];

@@ -1,5 +1,5 @@
 import { requireLocalEnvironment, PROJECT_ID, BUCKET } from '../local-config.mjs';
-import { initializeApp,cert } from 'firebase-admin/app';
+import { initializeApp,applicationDefault,cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
@@ -14,11 +14,15 @@ export const isCloud=dataMode()==='cloud-hybrid';
 let options;
 if(isCloud){
   requireCloudEnvironment(process.env);
+  if(process.env.K_SERVICE||process.env.AUTHENTISCAN_USE_ADC==='1'){
+    options={projectId:CLOUD_PROJECT_ID,credential:applicationDefault()};
+  }else{
   let key;
   try{key=JSON.parse(readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS||fileURLToPath(new URL('../.secrets/firebase-admin.json',import.meta.url)),'utf8'));}
   catch{throw new Error('Save the private Firebase Admin JSON as .secrets/firebase-admin.json. Never put it in src/public or paste it into chat.');}
   if(key.type!=='service_account'||key.project_id!==CLOUD_PROJECT_ID||typeof key.private_key!=='string'||typeof key.client_email!=='string')throw new Error('The credential must be a service account for authentiscan-bc704.');
   options={projectId:CLOUD_PROJECT_ID,credential:cert(key)};
+  }
 }else{
   requireLocalEnvironment(process.env);
   options={projectId: PROJECT_ID, storageBucket: BUCKET};

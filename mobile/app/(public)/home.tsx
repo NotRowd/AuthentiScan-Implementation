@@ -1,3 +1,6 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React, { useCallback, useRef } from 'react';
 import {
   Animated,
@@ -17,17 +20,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import CyberButton from '../../components/ui/CyberButton';
 import { useAuth } from '../../hooks/useAuth';
 
-const BRAND = {
-  ink: '#12304A',
-  muted: '#597188',
-  blue: '#2589D8',
-  deepBlue: '#176FB7',
-  paleBlue: '#EAF6FF',
-  border: '#D9EAF6',
-  surface: '#FFFFFF',
-  canvas: '#F6FAFD',
-};
-
 const NAV_LINKS = [
   { label: 'About', icon: 'information-circle-outline' as const, route: '/(public)/about' },
   { label: 'How it works', icon: 'help-circle-outline' as const, route: '/(public)/how-it-works' },
@@ -37,13 +29,15 @@ const NAV_LINKS = [
 const FEATURES = [
   { icon: 'scan-outline' as const, title: 'Image review', body: 'Get an AI estimate for an image.' },
   { icon: 'analytics-outline' as const, title: 'Clear results', body: 'See the result and its confidence score.' },
-  { icon: 'map-outline' as const, title: 'Visual context', body: 'Review the Grad-CAM explanation when available.' },
+  { icon: 'map-outline' as const, title: 'Visual context', body: 'Review suspected edit regions and visual observations when available.' },
   { icon: 'document-text-outline' as const, title: 'Shareable report', body: 'Keep a report of your completed analysis.' },
 ] as const;
 
 type SectionBox = { y: number; height: number };
 
 export default function HomeScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return null;
   if (isAuthenticated) return <Redirect href="/(tabs)/dashboard" />;
@@ -51,6 +45,8 @@ export default function HomeScreen() {
 }
 
 function GuestHomeScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const { height: viewportHeight } = useWindowDimensions();
   const scrollY = useRef(0);
   const sectionBoxes = useRef<Record<number, SectionBox>>({});
@@ -141,7 +137,7 @@ function GuestHomeScreen() {
                 <View style={[styles.signalDot, styles.signalDotBottom]} />
               </View>
               <View style={styles.scanPill}>
-                <Ionicons name="sparkles-outline" size={15} color={BRAND.deepBlue} />
+                <Ionicons name="sparkles-outline" size={15} color={Colors.cyanAlt} />
                 <Text style={styles.scanPillText}>Image authenticity insights</Text>
               </View>
             </View>
@@ -154,7 +150,7 @@ function GuestHomeScreen() {
                 size="lg"
                 style={styles.primaryButton}
                 textStyle={styles.primaryButtonText}
-                icon={<Ionicons name="scan-outline" size={20} color="#FFFFFF" />}
+                icon={<Ionicons name="scan-outline" size={20} color={Colors.onAction} />}
               />
               <TouchableOpacity
                 onPress={() => router.push('/(auth)/register')}
@@ -177,7 +173,7 @@ function GuestHomeScreen() {
               {FEATURES.map((feature) => (
                 <View key={feature.title} style={styles.featureCard}>
                   <View style={styles.featureIcon}>
-                    <Ionicons name={feature.icon} size={21} color={BRAND.deepBlue} />
+                    <Ionicons name={feature.icon} size={21} color={Colors.cyanAlt} />
                   </View>
                   <Text style={styles.featureTitle}>{feature.title}</Text>
                   <Text style={styles.featureBody}>{feature.body}</Text>
@@ -189,13 +185,13 @@ function GuestHomeScreen() {
           <Animated.View style={[styles.section, styles.learnSection, sectionStyle(1)]} onLayout={registerSection(1)}>
             <View style={styles.learnCard}>
               <View style={styles.learnIcon}>
-                <Ionicons name="shield-checkmark-outline" size={24} color={BRAND.deepBlue} />
+                <Ionicons name="shield-checkmark-outline" size={24} color={Colors.cyanAlt} />
               </View>
               <View style={styles.learnCopy}>
                 <Text style={styles.learnTitle}>Understand the result</Text>
                 <Text style={styles.learnBody}>See how image analysis works and what its estimates can—and can’t—tell you.</Text>
               </View>
-              <Ionicons name="arrow-down" size={18} color={BRAND.muted} />
+              <Ionicons name="arrow-down" size={18} color={Colors.textSecondary} />
             </View>
           </Animated.View>
 
@@ -210,10 +206,10 @@ function GuestHomeScreen() {
                 accessibilityLabel={link.label}
               >
                 <View style={styles.navIcon}>
-                  <Ionicons name={link.icon} size={20} color={BRAND.deepBlue} />
+                  <Ionicons name={link.icon} size={20} color={Colors.cyanAlt} />
                 </View>
                 <Text style={styles.navLabel}>{link.label}</Text>
-                <Ionicons name="chevron-forward" size={18} color={BRAND.muted} />
+                <Ionicons name="chevron-forward" size={18} color={Colors.textSecondary} />
               </TouchableOpacity>
             ))}
           </Animated.View>
@@ -231,8 +227,8 @@ function GuestHomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: BRAND.canvas },
+const makeStyles = (Colors: ColorPalette) => createStyles({
+  root: { flex: 1, backgroundColor: Colors.bgPrimary },
   safeArea: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
   header: {
@@ -240,58 +236,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BRAND.surface,
+    backgroundColor: Colors.bgSecondary,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: BRAND.border,
+    borderBottomColor: Colors.border,
     zIndex: 10,
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  logo: { width: 36, height: 36, borderRadius: 10 },
-  brandName: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5, color: BRAND.ink },
+  logo: {backgroundColor:Colors.logoPlate,borderRadius:32, width: 36, height: 36 },
+  brandName: { fontSize: 18, fontWeight: '800', letterSpacing: -0.5, color: Colors.textPrimary },
   hero: { paddingHorizontal: 22, paddingTop: 31, paddingBottom: 32, alignItems: 'center' },
-  eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#E5F4FF' },
-  eyebrowDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: BRAND.blue },
-  eyebrowText: { fontSize: 10, fontWeight: '800', letterSpacing: 1.15, color: BRAND.deepBlue },
-  heroTitle: { marginTop: 20, fontSize: 34, lineHeight: 40, fontWeight: '800', letterSpacing: -1.2, textAlign: 'center', color: BRAND.ink },
-  heroBody: { maxWidth: 340, marginTop: 12, fontSize: 15, lineHeight: 23, textAlign: 'center', color: BRAND.muted },
+  eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.cyanDim },
+  eyebrowDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.cyan },
+  eyebrowText: { fontSize: 10, fontWeight: '800', letterSpacing: 1.15, color: Colors.cyanAlt },
+  heroTitle: { marginTop: 20, fontSize: 34, lineHeight: 40, fontWeight: '800', letterSpacing: -1.2, textAlign: 'center', color: Colors.textPrimary },
+  heroBody: { maxWidth: 340, marginTop: 12, fontSize: 15, lineHeight: 23, textAlign: 'center', color: Colors.textSecondary },
   heroVisual: { height: 206, width: '100%', maxWidth: 370, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  visualOrbOuter: { width: 158, height: 158, borderRadius: 80, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E4F3FF', borderWidth: 1, borderColor: '#C8E4F9' },
-  visualOrbInner: { width: 112, height: 112, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', shadowColor: '#237EC2', shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 5 },
+  visualOrbOuter: { width: 158, height: 158, borderRadius: 80, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.glassBorderCyan },
+  visualOrbInner: { width: 112, height: 112, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgSecondary, shadowColor: Colors.shadow, shadowOffset: { width: 0, height: 7 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 5 },
   heroLogo: { width: 92, height: 92, borderRadius: 24 },
-  signalDot: { position: 'absolute', width: 13, height: 13, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#91C9F3' },
+  signalDot: { position: 'absolute', width: 13, height: 13, borderRadius: 7, backgroundColor: Colors.bgSecondary, borderWidth: 3, borderColor: Colors.glassBorderCyan },
   signalDotTop: { top: 8, left: 73 },
   signalDotRight: { right: 4, top: 73 },
   signalDotBottom: { bottom: 8, left: 73 },
-  scanPill: { position: 'absolute', bottom: 9, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: BRAND.border, shadowColor: '#12304A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 9, elevation: 3 },
-  scanPillText: { fontSize: 12, fontWeight: '700', color: BRAND.ink },
+  scanPill: { position: 'absolute', bottom: 9, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 13, paddingVertical: 9, borderRadius: 18, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.08, shadowRadius: 9, elevation: 3 },
+  scanPillText: { fontSize: 12, fontWeight: '700', color: Colors.textPrimary },
   ctas: { width: '100%', maxWidth: 380, alignItems: 'stretch', gap: 4 },
-  primaryButton: { width: '100%', alignSelf: 'stretch', justifyContent: 'center', minHeight: 56, backgroundColor: BRAND.blue, borderColor: BRAND.blue, borderRadius: 16, elevation: 3, shadowOpacity: 0.16, shadowRadius: 8 },
-  primaryButtonText: { color: '#FFFFFF', textTransform: 'none', letterSpacing: 0.1, fontSize: 16 },
+  primaryButton: { width: '100%', alignSelf: 'stretch', justifyContent: 'center', minHeight: 56, backgroundColor: Colors.action, borderColor: Colors.action, borderRadius: 16, elevation: 3, shadowOpacity: 0.16, shadowRadius: 8 },
+  primaryButtonText: { color: Colors.onAction, textTransform: 'none', letterSpacing: 0.1, fontSize: 16 },
   createAccountButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
-  createAccountText: { fontSize: 14, fontWeight: '700', color: BRAND.deepBlue },
-  heroNote: { marginTop: 8, fontSize: 11, lineHeight: 16, textAlign: 'center', color: '#70869A' },
+  createAccountText: { fontSize: 14, fontWeight: '700', color: Colors.cyanAlt },
+  heroNote: { marginTop: 8, fontSize: 11, lineHeight: 16, textAlign: 'center', color: Colors.textMuted },
   section: { paddingHorizontal: 20, paddingTop: 21, paddingBottom: 8 },
   sectionHeading: { marginBottom: 16 },
-  kicker: { marginBottom: 8, fontSize: 10, fontWeight: '800', letterSpacing: 1.2, color: BRAND.deepBlue },
-  sectionTitle: { fontSize: 23, lineHeight: 29, fontWeight: '800', letterSpacing: -0.5, color: BRAND.ink },
+  kicker: { marginBottom: 8, fontSize: 10, fontWeight: '800', letterSpacing: 1.2, color: Colors.cyanAlt },
+  sectionTitle: { fontSize: 23, lineHeight: 29, fontWeight: '800', letterSpacing: -0.5, color: Colors.textPrimary },
   featureGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 11 },
-  featureCard: { width: '48%', flexGrow: 1, minHeight: 146, padding: 15, borderRadius: 18, backgroundColor: BRAND.surface, borderWidth: 1, borderColor: BRAND.border, shadowColor: '#18476B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2 },
-  featureIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: BRAND.paleBlue, marginBottom: 12 },
-  featureTitle: { fontSize: 14, fontWeight: '800', color: BRAND.ink },
-  featureBody: { marginTop: 5, fontSize: 12, lineHeight: 18, color: BRAND.muted },
+  featureCard: { width: '48%', flexGrow: 1, minHeight: 146, padding: 15, borderRadius: 18, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border, shadowColor: Colors.shadow, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2 },
+  featureIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim, marginBottom: 12 },
+  featureTitle: { fontSize: 14, fontWeight: '800', color: Colors.textPrimary },
+  featureBody: { marginTop: 5, fontSize: 12, lineHeight: 18, color: Colors.textSecondary },
   learnSection: { paddingTop: 17 },
-  learnCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 18, backgroundColor: '#EAF6FF', borderWidth: 1, borderColor: '#D3EAF9' },
-  learnIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  learnCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: 18, backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.border },
+  learnIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgSecondary },
   learnCopy: { flex: 1 },
-  learnTitle: { fontSize: 14, fontWeight: '800', color: BRAND.ink },
-  learnBody: { marginTop: 4, fontSize: 12, lineHeight: 17, color: BRAND.muted },
+  learnTitle: { fontSize: 14, fontWeight: '800', color: Colors.textPrimary },
+  learnBody: { marginTop: 4, fontSize: 12, lineHeight: 17, color: Colors.textSecondary },
   linksSection: { paddingTop: 27, gap: 9 },
-  navCard: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 13, borderRadius: 16, backgroundColor: BRAND.surface, borderWidth: 1, borderColor: BRAND.border },
-  navIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: BRAND.paleBlue },
-  navLabel: { flex: 1, fontSize: 14, fontWeight: '700', color: BRAND.ink },
+  navCard: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 13, borderRadius: 16, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border },
+  navIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 11, backgroundColor: Colors.cyanDim },
+  navLabel: { flex: 1, fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
   footer: { alignItems: 'center', paddingHorizontal: 26, paddingTop: 30 },
   footerBrand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   footerLogo: { width: 22, height: 22, borderRadius: 6 },
-  footerBrandName: { fontSize: 13, fontWeight: '800', color: BRAND.ink },
-  footerNote: { marginTop: 9, fontSize: 11, lineHeight: 16, textAlign: 'center', color: BRAND.muted },
+  footerBrandName: { fontSize: 13, fontWeight: '800', color: Colors.textPrimary },
+  footerNote: { marginTop: 9, fontSize: 11, lineHeight: 16, textAlign: 'center', color: Colors.textSecondary },
 });

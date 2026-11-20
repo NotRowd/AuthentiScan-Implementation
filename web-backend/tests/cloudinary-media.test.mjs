@@ -48,3 +48,14 @@ test('downloads use bounded short-lived server-side URLs and block redirects/err
   response=new Response(Buffer.alloc(10*1024*1024+1));await assert.rejects(()=>media.file(name).download(),{code:'CLOUD_MEDIA_TOO_LARGE'});
   response=new Response(null);await assert.rejects(()=>media.file(name).download());
 });
+
+test('hard deletion targets authenticated raw assets, invalidates cache, and reports failures',async()=>{
+  let passed,result='ok';
+  const media=createCloudinaryMedia(credentials,{sdk:{uploader:{destroy:async(id,options)=>{passed={id,options};return {result};}}}});
+  await media.file(name).delete({ignoreNotFound:true});
+  assert.equal(passed.id,mediaId(name));assert.equal(passed.options.type,'authenticated');
+  assert.equal(passed.options.resource_type,'raw');assert.equal(passed.options.invalidate,true);
+  result='not found';await media.file(name).delete({ignoreNotFound:true});
+  await assert.rejects(()=>media.file(name).delete(),{code:'ENOENT'});
+  result='error';await assert.rejects(()=>media.file(name).delete({ignoreNotFound:true}),{code:'CLOUD_MEDIA_DELETE_FAILED'});
+});

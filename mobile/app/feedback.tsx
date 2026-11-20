@@ -1,3 +1,6 @@
+import {useTheme,useThemedStyles} from '../context/ThemeContext';
+import type {ColorPalette} from '../constants/Colors';
+import {createStyles} from '../constants/createStyles';
 import React, { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
@@ -8,13 +11,14 @@ import GlassCard from '../components/ui/GlassCard';
 import CyberButton from '../components/ui/CyberButton';
 import CyberText from '../components/ui/CyberText';
 import ScanGrid from '../components/ui/ScanGrid';
-import Colors from '../constants/Colors';
 import Spacing from '../constants/Spacing';
 import { getLatestScanResult } from '../services/scan/scanSession';
 import { feedbackService } from '../services/feedback/feedbackService';
 import type { FeedbackRating } from '../types';
 
 export default function FeedbackScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const result = getLatestScanResult();
   const [rating, setRating] = useState<FeedbackRating | null>(null);
   const [comment, setComment] = useState('');
@@ -56,7 +60,7 @@ export default function FeedbackScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#F6FAFD', '#EEF7FD', '#F6FAFD']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[Colors.bgPrimary, Colors.bgTertiary, Colors.bgPrimary]} style={StyleSheet.absoluteFill} />
       <ScanGrid animated={false} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -84,7 +88,7 @@ export default function FeedbackScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   container: { flex: 1, backgroundColor: Colors.bgPrimary }, safeArea: { flex: 1 }, keyboard: { flex: 1 }, content: { flexGrow: 1, padding: Spacing.screenPadding, paddingBottom: Spacing['3xl'], gap: Spacing.lg }, backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', marginLeft: -Spacing.sm },
-  heading: { alignItems: 'center', gap: Spacing.sm }, icon: { width: 68, height: 68, borderRadius: 34, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.glassBorderCyan }, card: { gap: Spacing.md }, stars: { flexDirection: 'row', justifyContent: 'center', gap: 4 }, starButton: { padding: 4 }, inputGroup: { gap: Spacing.sm }, input: { minHeight: 120, borderRadius: Spacing.inputRadius, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.glassBg, color: Colors.textPrimary, padding: Spacing.md, textAlignVertical: 'top' }, error: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' }, errorText: { flex: 1 }, fullButton: { width: '100%' }, savedCard: { alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.xl },
+  heading: { alignItems: 'center', gap: Spacing.sm }, icon: { width: 68, height: 68, borderRadius: 34, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.glassBorderCyan }, card: { gap: Spacing.md }, stars: { flexDirection: 'row', justifyContent: 'center', gap: 4 }, starButton: { padding: 4 }, inputGroup: { gap: Spacing.sm }, input: { minHeight: 120, borderRadius: Spacing.inputRadius, borderWidth: 1, borderColor:Colors.control, backgroundColor: Colors.glassBg, color: Colors.textPrimary, padding: Spacing.md, textAlignVertical: 'top' }, error: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'center' }, errorText: { flex: 1 }, fullButton: { width: '100%' }, savedCard: { alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.xl },
 });

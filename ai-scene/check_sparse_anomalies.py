@@ -1,0 +1,35 @@
+"""Local-only screen of sparse anomaly output. No production records or uploads."""
+import argparse
+import json
+from pathlib import Path
+import threading
+import time
+from qwen_service import QwenModel, runtime
+from anomaly_review import request_anomaly_review, parse_anomaly_review
+
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output',type=Path,required=True)
+parser.add_argument('--image',type=Path,action='append',required=True)
+args=parser.parse_args()
+args.output.mkdir()
+stop=threading.Event()
+rows=[]
+with runtime(stop):
+    print('Local CPU visual model ready.',flush=True)
+    for index,image in enumerate(args.image):
+        def capture(png):
+            raw=request_anomaly_review(png)
+            (args.output/f'{index}.raw.json').write_text(raw,encoding='utf-8')
+            return raw
+        model=QwenModel(capture,parser=parse_anomaly_review)
+        start=time.monotonic()
+        print('Reviewing '+image.name,flush=True)
+        try:
+            row=dict(image=image.name,review=model.features(image.read_bytes()),seconds=round(time.monotonic()-start,2))
+        except Exception as error:
+            row=dict(image=image.name,error=type(error).__name__,cause=str(error.__cause__) if error.__cause__ else str(error))
+        rows.append(row)
+        (args.output/'results.json').write_text(json.dumps(rows,indent=2),encoding='utf-8')
+        print(json.dumps(row),flush=True)
+        if 'error' in row:
+            raise SystemExit('Stopped after failure; no automatic retry.')

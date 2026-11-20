@@ -1,82 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import GlassCard from '../../components/ui/GlassCard';
+import {useTheme} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import React,{useEffect,useRef,useState} from 'react';
+import {TextInput} from 'react-native';
+import {router} from 'expo-router';
+import AccountLayout,{AccountField,AccountError} from '../../components/AccountLayout';
 import CyberButton from '../../components/ui/CyberButton';
 import CyberText from '../../components/ui/CyberText';
-import Colors from '../../constants/Colors';
-import Spacing from '../../constants/Spacing';
-import Typography from '../../constants/Typography';
-import { OFFLINE_MODE } from '../../services/api/config';
-import { passwordResetService } from '../../services/auth/passwordResetService';
+import {passwordResetService} from '../../services/auth/passwordResetService';
+import {OFFLINE_MODE} from '../../services/api/config';
+export default function ForgotPasswordScreen(){
+ const {colors:Colors}=useTheme();
 
-/** Password reset request UI. Email delivery requires a real auth provider. */
-export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isComplete, setIsComplete] = useState(false);
-  const pageOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(pageOpacity, { toValue: 1, duration: 320, useNativeDriver: true }).start();
-  }, [pageOpacity]);
-
-  const requestReset = async () => {
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const response = await passwordResetService.requestReset(email.trim().toLowerCase());
-      if (!response.success) setError(response.error);
-      else setIsComplete(true);
-    } catch {
-      setError("We couldn't prepare the reset request. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Animated.View style={[styles.container, { opacity: pageOpacity }]}>
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back"><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity>
-            <View style={styles.icon}><Image source={require('../../assets/AuthentiScan-Logo.png')} style={styles.brandLogo} accessibilityLabel="AuthentiScan logo" /></View>
-            <View style={styles.heading}><CyberText variant="h3" align="center">{isComplete ? OFFLINE_MODE ? 'Reset delivery unavailable' : 'Check your email' : 'Forgot your password?'}</CyberText><CyberText variant="bodySmall" align="center">{isComplete ? OFFLINE_MODE ? 'Email delivery is available in connected mode.' : 'If an account exists, a password reset link will be sent.' : 'Enter your email to begin a secure password reset.'}</CyberText></View>
-            {isComplete ? (
-              <GlassCard variant="strong" style={styles.card} active>
-                <View style={styles.notice}><Ionicons name="shield-outline" size={20} color={Colors.severityMedium} /><CyberText variant="bodySmall" style={styles.noticeCopy}>{OFFLINE_MODE ? 'Connect to AuthentiScan to request a reset.' : 'Open the link in your inbox to choose a new password, then return here to sign in.'}</CyberText></View>
-                <CyberText variant="caption" align="center">REQUESTED ADDRESS: {email.toUpperCase()}</CyberText>
-                <CyberButton label="Return to sign in" onPress={() => router.replace('/(auth)/login')} style={styles.fullButton} />
-                <CyberButton label="Use another email" onPress={() => { setIsComplete(false); setError(null); }} variant="ghost" />
-              </GlassCard>
-            ) : (
-              <GlassCard variant="strong" style={styles.card}>
-                {OFFLINE_MODE && <View style={styles.prototypeBadge}><CyberText variant="caption" color={Colors.severityMedium}>OFFLINE SAMPLE</CyberText></View>}
-                <View style={styles.inputGroup}>
-                  <CyberText variant="label">EMAIL ADDRESS</CyberText>
-                  <View style={[styles.inputWrap, isFocused && styles.inputFocused, !!error && styles.inputError]}>
-                    <Ionicons name="mail-outline" size={18} color={isFocused ? Colors.cyan : Colors.textSecondary} />
-                    <TextInput value={email} onChangeText={(value) => { setEmail(value); setError(null); }} style={styles.input} placeholder="your@email.com" placeholderTextColor={Colors.textMuted} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} returnKeyType="done" onSubmitEditing={requestReset} onFocus={() => setIsFocused(true)} onBlur={() => setIsFocused(false)} accessibilityLabel="Email address for password reset" />
-                  </View>
-                </View>
-                {error && <View style={styles.error}><Ionicons name="alert-circle-outline" size={17} color={Colors.fake} /><CyberText variant="bodySmall" color={Colors.fake} style={styles.errorText}>{error}</CyberText></View>}
-                <CyberButton label="Continue" onPress={requestReset} loading={isSubmitting} disabled={isSubmitting} style={styles.fullButton} />
-                <CyberText variant="caption" align="center">Check your spam folder if you do not see the reset email.</CyberText>
-              </GlassCard>
-            )}
-            {!isComplete && <TouchableOpacity onPress={() => router.replace('/(auth)/login')} accessibilityRole="button" accessibilityLabel="Return to sign in"><CyberText variant="bodySmall" align="center" color={Colors.cyan}>Back to sign in</CyberText></TouchableOpacity>}
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Animated.View>
-  );
+ const [email,setEmail]=useState(''),[sentTo,setSentTo]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[remaining,setRemaining]=useState(0);const locked=useRef(false),input=useRef<React.ComponentRef<typeof TextInput>>(null);
+ useEffect(()=>{if(!remaining)return;const timer=setTimeout(()=>setRemaining(v=>Math.max(0,v-1)),1000);return()=>clearTimeout(timer);},[remaining]);
+ async function submit(){if(locked.current||remaining)return;locked.current=true;setBusy(true);setError('');try{const result=await passwordResetService.requestReset(email.trim().toLowerCase());if(!result.success){setError(result.error);input.current?.focus();}else{setSentTo(email.trim());setRemaining(60);}}catch{setError('Could not request a reset link. Please wait and try again.');}finally{locked.current=false;setBusy(false);}}
+ return <AccountLayout title={sentTo?'Check your email':'Forgot your password?'} subtitle={sentTo?'Follow the link in your password reset email.':'Enter your account email to request a reset link.'} footer={<CyberButton label="Back to sign in" variant="ghost" onPress={()=>router.replace('/(auth)/login')}/>}>
+  {sentTo?<><CyberText variant="bodySmall">{OFFLINE_MODE?'Offline mode does not send emails. Connect to AuthentiScan to request a reset.':'If an account is registered with '+sentTo+', we’ve requested a password reset email.'}</CyberText><CyberText variant="bodySmall">1. Open the password reset email from AuthentiScan.{ '\n' }2. Follow the secure link and choose a new password.{ '\n' }3. Return here and sign in with your new password.</CyberText><CyberText variant="caption">No email yet? Check spam or junk. If you request another link, use the newest email. The link opens your secure password reset page in the browser.</CyberText></>:<><CyberText variant="bodySmall">If an account exists for this email, a reset link will be sent.</CyberText><AccountField ref={input} label="Email address" value={email} onChangeText={v=>{setEmail(v);setError('');}} autoComplete="email" keyboardType="email-address" maxLength={254} editable={!busy} returnKeyType="send" onSubmitEditing={submit}/></>}
+  <AccountError message={error}/><CyberButton label={busy?'Sending…':sentTo?(remaining?'Resend available in '+remaining+'s':'Resend reset link'):'Send reset link'} loading={busy} disabled={busy||remaining>0} onPress={submit}/>
+  {!!sentTo&&<CyberButton label="Use a different email address" variant="ghost" disabled={busy} onPress={()=>{setSentTo('');setRemaining(0);setError('');}}/>}
+ </AccountLayout>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bgPrimary }, safeArea: { flex: 1 }, keyboard: { flex: 1 }, content: { flexGrow: 1, alignItems: 'stretch', paddingHorizontal: Spacing.screenPadding, paddingBottom: Spacing['3xl'], gap: Spacing.lg }, backButton: { width: 44, height: 48, justifyContent: 'center' }, icon: { alignSelf: 'center', width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: Colors.border, marginTop: Spacing.lg }, brandLogo: { width: 72, height: 72, borderRadius: 18 }, heading: { alignItems: 'center', gap: Spacing.sm }, card: { gap: Spacing.lg }, prototypeBadge: { alignSelf: 'center', paddingHorizontal: Spacing.sm, paddingVertical: 5, borderRadius: Spacing.chipRadius, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: Colors.severityMedium }, inputGroup: { gap: Spacing.sm }, inputWrap: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: Spacing.inputRadius, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.glassBg }, inputFocused: { borderColor: Colors.cyan, backgroundColor: Colors.cyanDim }, inputError: { borderColor: Colors.fake }, input: { flex: 1, color: Colors.textPrimary, fontSize: Typography.size.base, paddingVertical: Spacing.sm }, error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }, errorText: { flex: 1 }, notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: Spacing.md, borderRadius: Spacing.inputRadius, backgroundColor: 'rgba(245,158,11,0.12)', borderWidth: 1, borderColor: Colors.severityMedium }, noticeCopy: { flex: 1 }, fullButton: { width: '100%' },
-});

@@ -2,6 +2,9 @@ node_modules/
 dist/
 .cache/
 .runtime/
+.detector-venv/
+.detector-models/
+__pycache__/
 .emulator-data/
 .emulator-snapshots/
 firebase-export-*/

@@ -1,23 +1,29 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Image, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, Animated, AppState, Image, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CyberButton from '../../components/ui/CyberButton';
 import CyberText from '../../components/ui/CyberText';
-import Colors from '../../constants/Colors';
 import Spacing from '../../constants/Spacing';
 import { mockScanService } from '../../services/scan/mockScanService';
-import { checkScanReadiness, realScanService } from '../../services/scan/scanService';
+import { checkScanReadiness, realScanService, pendingScanId, recoverSubmittedScan } from '../../services/scan/scanService';
 import { OFFLINE_MODE } from '../../services/api/config';
 import { setLatestScanResult } from '../../services/scan/scanSession';
 import { validateUpload } from '../../services/api/contracts';
 import type { MockScenario } from '../../services/scan/scanService';
 import type { ScanResult } from '../../types';
 import { router } from 'expo-router';
+import { useAllowance } from '../../hooks/useAllowance';
 
 /** Selects a local image and submits it to the explicitly selected scan service. */
 export default function ScanScreen() {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
+  const allowance=useAllowance();
   const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [scanStatus, setScanStatus] = useState<'idle' | 'processing' | 'complete' | 'error'>('idle');
   const [scanStage, setScanStage] = useState('');
@@ -27,6 +33,8 @@ export default function ScanScreen() {
   const scanRun = useRef(0);
   const [scenario, setScenario] = useState<MockScenario>('ai_generated');
   const requestController = useRef<AbortController | null>(null);
+  const recoveryController = useRef<AbortController | null>(null);
+  const resumeWanted = useRef(false);
   const pageOpacity = useRef(new Animated.Value(0)).current;
   const { height: viewportHeight } = useWindowDimensions();
   const scrollOffset = useRef(0);
@@ -68,7 +76,50 @@ export default function ScanScreen() {
     opacity: sectionAnimations[index],
     transform: [{ translateY: sectionAnimations[index].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
   });
-  useEffect(() => () => { scanRun.current += 1; requestController.current?.abort(); }, []);
+  useEffect(() => () => { scanRun.current += 1; requestController.current?.abort(); recoveryController.current?.abort(); }, []);
+
+  useEffect(() => {
+    if (OFFLINE_MODE || !selectedImage) return;
+    async function recover() {
+      if (!selectedImage || !pendingScanId(selectedImage) || !resumeWanted.current || recoveryController.current) return;
+      const version = scanRun.current;
+      const controller = new AbortController();
+      recoveryController.current = controller;
+      setScanStatus('processing');
+      setScanStage('Checking the saved scan after returning to the app…');
+      try {
+        const saved = await recoverSubmittedScan(selectedImage, controller.signal);
+        if (controller.signal.aborted || scanRun.current !== version) return;
+        if (!saved) {
+          if (!requestController.current) {
+            setScanStatus('error');
+            setScanStage('No saved scan was found yet. Check History before retrying. Retrying this selected image reuses the same request ID.');
+          }
+          return;
+        }
+        // Invalidate a late upload response before navigating, then release that
+        // socket. The server already owns the saved operation and keeps its ID.
+        scanRun.current++; resumeWanted.current = false;
+        requestController.current?.abort();
+        requestController.current = null;
+        setScanResult(saved); setScanStatus('complete');
+        setScanStage(saved.hasAnalysis ? 'Result ready' : 'Scan saved. Checking analysis status…');
+        setLatestScanResult(saved);
+        void allowance.refresh();
+        router.push('/result');
+      } catch {
+        if (!controller.signal.aborted && scanRun.current === version && !requestController.current) {
+          setScanStatus('error');
+          setScanStage('Could not reconnect to the saved scan. Check History before uploading again.');
+        }
+      } finally { if (recoveryController.current === controller) recoveryController.current = null; }
+    }
+    const listener = AppState.addEventListener('change', state => {
+      if (state === 'active') void recover();
+      else if (pendingScanId(selectedImage)) setScanStage('Your phone may pause the connection while away. Return to check the saved scan.');
+    });
+    return () => { listener.remove(); recoveryController.current?.abort(); recoveryController.current = null; };
+  }, [selectedImage, allowance.refresh]);
 
   useEffect(() => {
     if (scanStatus !== 'processing') {
@@ -96,6 +147,7 @@ export default function ScanScreen() {
       if (!result.canceled) {
         const validationError = validateUpload(result.assets[0]);
         if (validationError) { Alert.alert('Unsupported image', validationError); return; }
+        resumeWanted.current = false;
         setSelectedImage(result.assets[0]);
         setScanStatus('idle');
         setScanResult(null);
@@ -107,9 +159,10 @@ export default function ScanScreen() {
   };
 
   const startScan = async () => {
-    if (!selectedImage || requestController.current) return;
+    if (!selectedImage || requestController.current || recoveryController.current) return;
 
     const run = ++scanRun.current;
+    resumeWanted.current = true;
     const controller = new AbortController();
     requestController.current = controller;
     setScanStatus('processing');
@@ -127,16 +180,33 @@ export default function ScanScreen() {
       }
       const result = await (OFFLINE_MODE ? mockScanService : realScanService).analyzeImage(selectedImage, scenario, controller.signal);
       if (scanRun.current !== run) return;
+      scanRun.current++; resumeWanted.current = false;
       setScanResult(result);
       setScanStage(result.hasAnalysis ? 'Result ready' : 'Scan status: ' + result.status);
       setScanStatus('complete');
       Animated.timing(progress, { toValue: 1, duration: 220, useNativeDriver: false }).start();
       setLatestScanResult(result);
+      void allowance.refresh();
       router.push('/result');
     } catch (error) {
       if (scanRun.current !== run) return;
+      // A lost response does not establish whether the server accepted bytes.
+      // Read the exact saved operation once before showing an upload error.
+      if (!OFFLINE_MODE && !controller.signal.aborted && AppState.currentState === 'active' &&
+          /Connection interrupted|Request timed out/i.test(error instanceof Error ? error.message : '')) {
+        setScanStage('Connection interrupted. Checking whether this scan was saved…');
+        const saved = await recoverSubmittedScan(selectedImage, controller.signal).catch(() => null);
+        if (scanRun.current !== run || controller.signal.aborted) return;
+        if (saved) {
+          scanRun.current++; resumeWanted.current = false;
+          setScanResult(saved); setScanStatus('complete');
+          setScanStage(saved.hasAnalysis ? 'Result ready' : 'Scan saved. Checking analysis status…');
+          setLatestScanResult(saved); void allowance.refresh(); router.push('/result');
+          return;
+        }
+      }
       setScanStatus('error');
-      setScanStage(error instanceof Error ? error.message : 'The scan could not be completed. Check History before retrying.');
+      setScanStage(AppState.currentState !== 'active' && !OFFLINE_MODE ? (pendingScanId(selectedImage) ? 'The phone paused the connection. Return to AuthentiScan to check this saved scan.' : 'The connection paused before upload was confirmed. Return to the app and try Analyze image again.') : error instanceof Error ? error.message : 'The scan could not be completed. Check History before retrying.');
       progress.stopAnimation();
     } finally {
       if (requestController.current === controller) requestController.current = null;
@@ -144,6 +214,8 @@ export default function ScanScreen() {
   };
 
   const cancelScan = () => {
+    resumeWanted.current = false;
+    recoveryController.current?.abort(); recoveryController.current = null;
     requestController.current?.abort();
     requestController.current = null;
     scanRun.current += 1;
@@ -166,11 +238,12 @@ export default function ScanScreen() {
               <CyberText variant="caption" style={styles.limitCopy}>
                 {OFFLINE_MODE
                   ? 'Offline demo: selected outcomes are simulations, not AI predictions.'
-                  : 'JPEG, PNG, WebP · Up to 10 MB · Free: 5 scans with no automatic monthly reset. Completed scans use credits; queued or processing scans reserve one; failed scans do not count.'}
+                  : 'JPEG, PNG, WebP · Up to 10 MB. '+allowance.label+' Completed scans use one credit; pending scans reserve one; failed scans do not use a credit.'}
               </CyberText>
             </View>
           </View>
 
+          {!!allowance.error && <CyberButton label="Retry allowance" variant="secondary" onPress={()=>void allowance.refresh()}/>}
           <Animated.View style={[styles.scanContentSection, sectionMotion(0)]} onLayout={onSectionLayout(0)}>
           <View style={styles.steps}>
             {[
@@ -181,7 +254,7 @@ export default function ScanScreen() {
               <React.Fragment key={step.label}>
                 <View style={styles.stepItem}>
                   <View style={[styles.stepNumber, (index === 0 || (selectedImage && index === 1) || scanStatus === 'complete') && styles.stepNumberActive]}>
-                    <CyberText variant="caption" color={(index === 0 || (selectedImage && index === 1) || scanStatus === 'complete') ? '#FFFFFF' : Colors.textSecondary}>{step.number}</CyberText>
+                    <CyberText variant="caption" color={(index === 0 || (selectedImage && index === 1) || scanStatus === 'complete') ? Colors.bgSecondary : Colors.textSecondary}>{step.number}</CyberText>
                   </View>
                   <CyberText variant="caption" color={(index === 0 || (selectedImage && index === 1) || scanStatus === 'complete') ? Colors.textPrimary : Colors.textSecondary}>{step.label}</CyberText>
                 </View>
@@ -302,36 +375,36 @@ export default function ScanScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   container: { flex: 1, backgroundColor: Colors.bgPrimary },
   safeArea: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: 18, paddingBottom: Spacing.tabBarHeight + 28, gap: 15 },
   header: { gap: 7, paddingTop: 18, paddingBottom: 3 },
-  limitNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4, paddingHorizontal: 11, paddingVertical: 9, borderRadius: 12, backgroundColor: '#EAF6FF' },
+  limitNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4, paddingHorizontal: 11, paddingVertical: 9, borderRadius: 12, backgroundColor: Colors.cyanDim },
   limitCopy: { flex: 1, fontSize: 10, lineHeight: 15 },
   steps: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, paddingVertical: 2 },
   stepItem: { alignItems: 'center', gap: 5 },
-  stepNumber: { width: 27, height: 27, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EEF3F7', borderWidth: 1, borderColor: Colors.border },
+  stepNumber: { width: 27, height: 27, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgTertiary, borderWidth: 1, borderColor: Colors.border },
   stepNumberActive: { backgroundColor: Colors.cyan, borderColor: Colors.cyan },
   stepConnector: { height: 1, flex: 1, marginHorizontal: 10, backgroundColor: Colors.border },
   scanContentSection: { gap: 15 },
   actionsSection: {},
-  demoPanel: { gap: 13, padding: 14, borderRadius: 17, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: Colors.border },
+  demoPanel: { gap: 13, padding: 14, borderRadius: 17, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border },
   demoHeading: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   demoIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim },
   demoHeadingCopy: { flex: 1, gap: 2 },
   demoTitle: { fontWeight: '700' },
   scenarioList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   scenarioButton: { minHeight: 38, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12 },
-  uploadZone: { minHeight: 242, borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.glassBorderCyan, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 24, gap: 11 },
+  uploadZone: { minHeight: 242, borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.glassBorderCyan, borderRadius: 20, backgroundColor: Colors.bgSecondary, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 22, paddingVertical: 24, gap: 11 },
   uploadIcon: { width: 62, height: 62, borderRadius: 20, backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.glassBorderCyan, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  formats: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 10, backgroundColor: '#F2F8FC' },
+  formats: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 10, backgroundColor: Colors.bgTertiary },
   uploadHint: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 2 },
-  previewCard: { gap: 10, padding: 11, borderWidth: 1, borderColor: Colors.border, borderRadius: 19, backgroundColor: '#FFFFFF', shadowColor: '#18476B', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  previewCard: { gap: 10, padding: 11, borderWidth: 1, borderColor: Colors.border, borderRadius: 19, backgroundColor: Colors.bgSecondary, shadowColor: Colors.shadow, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
   previewHeader: { minHeight: 28, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 3 },
   previewHeading: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   previewStatusDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.authentic },
-  imageFrame: { height: 250, overflow: 'hidden', position: 'relative', borderRadius: 13, backgroundColor: '#F2F7FB' },
+  imageFrame: { height: 250, overflow: 'hidden', position: 'relative', borderRadius: 13, backgroundColor: Colors.bgTertiary },
   preview: { width: '100%', height: '100%', resizeMode: 'contain' },
   scanLine: { position: 'absolute', left: 12, right: 12, height: 2, borderRadius: 1, backgroundColor: Colors.cyan, shadowColor: Colors.cyan, shadowOpacity: 0.85, shadowRadius: 8, elevation: 5 },
   viewfinder: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
@@ -340,16 +413,16 @@ const styles = StyleSheet.create({
   cornerTopRight: { top: 14, right: 14, borderTopWidth: 2, borderRightWidth: 2 },
   cornerBottomLeft: { bottom: 14, left: 14, borderBottomWidth: 2, borderLeftWidth: 2 },
   cornerBottomRight: { right: 14, bottom: 14, borderBottomWidth: 2, borderRightWidth: 2 },
-  removeButton: { position: 'absolute', top: 9, right: 9, width: 36, height: 36, borderRadius: 13, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center', elevation: 2 },
-  imageDetails: { gap: 5, paddingHorizontal: 13, paddingVertical: 11, borderRadius: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: Colors.border },
+  removeButton: { position: 'absolute', top: 9, right: 9, width: 36, height: 36, borderRadius: 13, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center', elevation: 2 },
+  imageDetails: { gap: 5, paddingHorizontal: 13, paddingVertical: 11, borderRadius: 14, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   fileName: { flex: 1 },
   actions: { gap: Spacing.md },
   fullButton: { width: '100%' },
   readyNote: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.sm },
-  processingCard: { alignItems: 'stretch', gap: Spacing.md, padding: Spacing.md, borderRadius: 17, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: Colors.glassBorderCyan },
+  processingCard: { alignItems: 'stretch', gap: Spacing.md, padding: Spacing.md, borderRadius: 17, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.glassBorderCyan },
   processingHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
-  progressTrack: { height: 7, overflow: 'hidden', borderRadius: 4, backgroundColor: '#E5F1F9' },
+  progressTrack: { height: 7, overflow: 'hidden', borderRadius: 4, backgroundColor: Colors.bgTertiary },
   progressFill: { height: '100%', borderRadius: 3, backgroundColor: Colors.cyan },
   errorNote: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm, padding: 12, borderRadius: 13, backgroundColor: Colors.fakeDim },
   errorCopy: { flex: 1 },

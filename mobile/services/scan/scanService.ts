@@ -24,6 +24,28 @@ function uploadKey(image: UploadImage) {
   pendingUploads.set(image, { key, revision });
   return key;
 }
+export function pendingScanId(image: UploadImage): string | null {
+  const pending = pendingUploads.get(image);
+  return pending?.revision === sessionRevision() ? pending.key : null;
+}
+// The server uses the idempotency UUID as the saved scan ID. Recovery is GET-only:
+// never resubmit bytes or choose an image by filename after an ambiguous upload.
+export async function recoverSubmittedScan(image: UploadImage, signal?: AbortSignal): Promise<ScanResult | null> {
+  const id = pendingScanId(image);
+  if (!id || signal?.aborted) return null;
+  const revision = sessionRevision();
+  try {
+    const response = await apiRequest<ApiResponse<ApiScan>>(API_ROUTES.scans + '/' + id, {signal,timeoutMs:30000});
+    if (signal?.aborted || revision !== sessionRevision() || pendingScanId(image) !== id) return null;
+    const scan = mapScan(unwrap(response), image.uri);
+    if (scan.id !== id) throw new Error('Saved scan reference did not match this upload.');
+    if (scan.status === 'completed' || scan.status === 'failed') pendingUploads.delete(image);
+    return scan;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
 export async function checkScanReadiness(image: UploadImage, signal?: AbortSignal) {
   // A retry of an ambiguous submission must still reach the idempotent upload endpoint.
   if (pendingUploads.get(image)?.revision === sessionRevision()) return;

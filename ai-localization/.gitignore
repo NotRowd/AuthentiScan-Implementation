@@ -1,0 +1,10 @@
+.venv/
+.venv-vaas/
+.venv-iml/
+.venv-safire/
+vendor/
+weights/
+runs/
+datasets/
+__pycache__/
+candidates/

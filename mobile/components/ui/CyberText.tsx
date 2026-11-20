@@ -1,7 +1,9 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React from 'react';
 import { Text, TextStyle, StyleSheet } from 'react-native';
-import Colors from '../../constants/Colors';
-import Typography from '../../constants/Typography';
+import Typography, { poppinsFamily } from '../../constants/Typography';
 
 type TextVariant =
   | 'h1'
@@ -45,14 +47,18 @@ const CyberText: React.FC<CyberTextProps> = ({
   align = 'left',
   muted = false,
 }) => {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const textColor = color ?? (muted ? Colors.textSecondary : Colors.textPrimary);
 
+  const merged = StyleSheet.flatten([styles[variant], style]);
   return (
     <Text
       style={[
         styles[variant],
         { color: textColor, textAlign: align },
         style,
+        {fontFamily:poppinsFamily(merged?.fontWeight)},
       ]}
       numberOfLines={numberOfLines}
     >
@@ -61,7 +67,7 @@ const CyberText: React.FC<CyberTextProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   h1: {
     fontSize: Typography.size['4xl'],
     fontWeight: Typography.weight.extrabold,

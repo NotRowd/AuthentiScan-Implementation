@@ -12,7 +12,7 @@ function mount(share) {
   const module = { exports: {} };
   vm.runInNewContext(code, {module, exports: module.exports, AbortController,
     setTimeout: fn => { const id = ++timerId; timers.set(id, fn); return id; }, clearTimeout: id => timers.delete(id),
-    require(name) {
+    require(name) {if(name.includes('ThemeContext'))return require('./theme-stub.cjs');
       if (name === 'react') return { useRef: value => { const i = cursor++; return hooks[i] ??= {current:value}; },
         useState: value => { const i = cursor++; if (!(i in hooks)) hooks[i] = value; return [hooks[i], next => hooks[i] = next]; }, useCallback: fn => fn };
       if (name === 'react/jsx-runtime') return require(name);

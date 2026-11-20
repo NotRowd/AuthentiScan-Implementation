@@ -1,11 +1,15 @@
+import {useTheme} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
 import { Stack } from 'expo-router';
 
 export default function PublicLayout() {
+ const {colors:Colors}=useTheme();
+
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: '#F6FAFD' },
+        contentStyle: { backgroundColor: Colors.bgPrimary },
         animation: 'slide_from_right',
       }}
     />

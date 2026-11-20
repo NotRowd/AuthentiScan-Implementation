@@ -1,6 +1,8 @@
+import {useTheme,useThemedStyles} from '../../context/ThemeContext';
+import type {ColorPalette} from '../../constants/Colors';
+import {createStyles} from '../../constants/createStyles';
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View, ViewStyle } from 'react-native';
-import Colors from '../../constants/Colors';
 
 interface ScanGridProps {
   style?: ViewStyle;
@@ -18,6 +20,8 @@ interface ScanGridProps {
  * - Keeps opacity very low so it never distracts from foreground content.
  */
 const ScanGrid: React.FC<ScanGridProps> = ({ style, animated = true }) => {
+ const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
+
   const scanLineY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -80,7 +84,7 @@ const ScanGrid: React.FC<ScanGridProps> = ({ style, animated = true }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (Colors: ColorPalette) => createStyles({
   container: {
     overflow: 'hidden',
   },
