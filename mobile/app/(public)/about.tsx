@@ -1,3 +1,5 @@
+import DetailBack from '../../components/ui/DetailBack';
+import {useAuth} from '../../hooks/useAuth';
 import {useTheme,useThemedStyles} from '../../context/ThemeContext';
 import type {ColorPalette} from '../../constants/Colors';
 import {createStyles} from '../../constants/createStyles';
@@ -34,6 +36,7 @@ const PLACEHOLDER_STATS = [
  * Stats are clearly marked as placeholders per project guidelines.
  */
 export default function AboutScreen() {
+ const {isAuthenticated}=useAuth();
  const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
 
   return (
@@ -51,16 +54,9 @@ export default function AboutScreen() {
         >
           {/* The page header scrolls with this internal screen. */}
           <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backButton}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
-            </TouchableOpacity>
-            <CyberText variant="label" color={Colors.cyan}>ABOUT</CyberText>
-            <View style={{ width: 40 }} />
+            <DetailBack fallback={isAuthenticated?'/(tabs)/settings':'/(public)/home'} style={{marginBottom:0}}/>
+            <CyberText variant="label" color={Colors.cyan} style={{flex:1,textAlign:'center'}}>ABOUT</CyberText>
+            <View style={{ width: 72 }} />
           </View>
 
           {/* Mission panel */}

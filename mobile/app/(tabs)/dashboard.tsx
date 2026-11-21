@@ -1,3 +1,4 @@
+import {useMobileTabSpacing} from '../../hooks/useMobileTabSpacing';
 import {useTheme,useThemedStyles} from '../../context/ThemeContext';
 import type {ColorPalette} from '../../constants/Colors';
 import {createStyles} from '../../constants/createStyles';
@@ -17,11 +18,13 @@ import type {ScanResult} from '../../types';
 export default function DashboardScreen(){
  const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
 
+ const {contentBottom}=useMobileTabSpacing();
+ const [authenticCount,setAuthenticCount]=useState<number|null>(null);
  const {user}=useAuth();const [scans,setScans]=useState<ScanResult[]>([]),[stats,setStats]=useState<Awaited<ReturnType<typeof scanHistoryService.getStats>>|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');const generation=useRef(0);
- const load=useCallback(async()=>{const version=++generation.current;setBusy(true);setError('');try{const [page,summary]=await Promise.all([scanHistoryService.getPage(0,5),scanHistoryService.getStats()]);if(generation.current===version){setScans(page.scans);setStats(summary);}}catch{if(generation.current===version){setError('Could not refresh your workspace. Pull down or tap Retry.');setStats(null);}}finally{if(generation.current===version)setBusy(false);}},[]);
+ const load=useCallback(async()=>{const version=++generation.current;setBusy(true);setError('');try{const [page,summary,authenticPage]=await Promise.all([scanHistoryService.getPage(0,5),scanHistoryService.getStats(),scanHistoryService.getPage(0,1,{status:'authentic'})]);if(generation.current===version){setScans(page.scans);setStats(summary);setAuthenticCount(authenticPage.pagination.total);}}catch{if(generation.current===version){setError('Could not refresh your workspace. Pull down or tap Retry.');setStats(null);setAuthenticCount(null);}}finally{if(generation.current===version)setBusy(false);}},[]);
  useFocusEffect(useCallback(()=>{void load();const listener=AppState.addEventListener('change',state=>{if(state==='active')void load();});return()=>{generation.current++;listener.remove();};},[load,user?.id]));
- const items=[['Total scans',stats?.total_scans],['Scans remaining',stats?.plan?(stats.plan.scan_limit===null?'Unlimited':typeof stats.scans_remaining==='number'?stats.scans_remaining:'—'):'—'],['AI-generated',stats?.ai_generated_found],['Queued scans',stats?.queued_scans]];
- return <SafeAreaView style={styles.screen} edges={['top']}><ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={busy} onRefresh={()=>void load()} tintColor={Colors.cyan}/>}>
+ const items=[['Total scans',stats?.total_scans],['Scans remaining',stats?.plan?(stats.plan.scan_limit===null?'Unlimited':typeof stats.scans_remaining==='number'?stats.scans_remaining:'—'):'—'],['AI-generated',stats?.ai_generated_found],['Authentic',authenticCount]];
+ return <SafeAreaView style={styles.screen} edges={['top']}><ScrollView contentContainerStyle={[styles.content,{paddingBottom:contentBottom}]} refreshControl={<RefreshControl refreshing={busy} onRefresh={()=>void load()} tintColor={Colors.cyan}/>}>
   <View style={styles.brand}><Image source={require('../../assets/AuthentiScan-Logo.png')} style={styles.logo} accessibilityLabel="AuthentiScan logo"/><CyberText variant="h4">AuthentiScan</CyberText></View>
   <CyberText variant="h3">Welcome, {user?.firstName||'there'}!</CyberText><CyberText variant="bodySmall">Your image review workspace. Results are estimates, not proof of authenticity.</CyberText>
   <GlassCard style={styles.hero}><CyberText variant="label" color={Colors.cyan}>START ANALYSIS</CyberText><CyberText variant="h4">Take a closer look.</CyberText><CyberText variant="bodySmall">Choose an image to review its classification, suspected edit regions, and unusual details.</CyberText><CyberButton label="Scan an image" onPress={()=>router.push('/(tabs)/scan')}/><CyberText variant="caption">JPEG, PNG, WebP · Up to 10 MB</CyberText></GlassCard>

@@ -1,3 +1,6 @@
+import {useDetailBottomPadding} from '../hooks/useMobileTabSpacing';
+import {BackButton} from '../components/ui/DetailBack';
+import {useDetailBack} from '../hooks/useDetailBack';
 import {useTheme,useThemedStyles} from '../context/ThemeContext';
 import type {ColorPalette} from '../constants/Colors';
 import {createStyles} from '../constants/createStyles';
@@ -21,8 +24,10 @@ import ExportReportButton from '../components/ui/ExportReportButton';
 import { classificationRows, regionPresentation, resultExplanation } from '../services/scan/resultPresentation';
 
 export default function ResultScreen() {
+ const bottomPadding=useDetailBottomPadding(48);
  const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
 
+  const {goBack,returnsToHistory}=useDetailBack('/(tabs)/history');
   const [result, setResult] = useState(getLatestScanResult);
   const [operation, setOperation] = useState<'refresh' | 'features' | null>(null);
   const [error, setError] = useState('');
@@ -64,7 +69,8 @@ export default function ResultScreen() {
   const scores = classificationRows(result);
   const regions = regionPresentation(result);
   return <SafeAreaView style={styles.screen} edges={['top']}>
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView contentContainerStyle={[styles.content,{paddingBottom:bottomPadding}]}>
+      <BackButton onPress={goBack}/>
       <CyberText variant="label" color={Colors.cyan}>SAVED ANALYSIS</CyberText>
       <CyberText variant="h3">Scan report</CyberText>
       <CyberText variant="body" style={{fontWeight:'600'}}>{result.fileName}</CyberText>
@@ -118,7 +124,7 @@ export default function ResultScreen() {
         {!OFFLINE_MODE&&<CyberButton label="Rate this report" variant="secondary" onPress={()=>router.push('/feedback')}/>}
       </>}
       <CyberButton label={OFFLINE_MODE?'Test another response':'Scan another image'} onPress={()=>router.replace('/(tabs)/scan')}/>
-      <CyberButton label="Back to history" variant="secondary" onPress={()=>router.replace('/(tabs)/history')}/>
+      {!returnsToHistory&&<CyberButton label="Back to history" variant="ghost" onPress={()=>router.replace('/(tabs)/history')}/>}
     </ScrollView>
   </SafeAreaView>;
 }

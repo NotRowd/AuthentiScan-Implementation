@@ -1,3 +1,5 @@
+import DetailBack from '../../components/ui/DetailBack';
+import {useAuth} from '../../hooks/useAuth';
 import {useTheme,useThemedStyles} from '../../context/ThemeContext';
 import type {ColorPalette} from '../../constants/Colors';
 import {createStyles} from '../../constants/createStyles';
@@ -81,6 +83,7 @@ const TECH = [
  * 4-step process visualization with glass cards and cyan accents.
  */
 export default function HowItWorksScreen() {
+ const {isAuthenticated}=useAuth();
  const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles); const STEPS=getSteps(Colors);
 
   const scrollRef = useRef<ScrollView>(null);
@@ -99,16 +102,9 @@ export default function HowItWorksScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backButton}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
-            >
-              <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
-            </TouchableOpacity>
-            <CyberText variant="label" color={Colors.cyan}>HOW IT WORKS</CyberText>
-            <View style={{ width: 40 }} />
+            <DetailBack fallback={isAuthenticated?'/(tabs)/settings':'/(public)/home'} style={{marginBottom:0}}/>
+            <CyberText variant="label" color={Colors.cyan} style={{flex:1,textAlign:'center'}}>HOW IT WORKS</CyberText>
+            <View style={{ width: 72 }} />
           </View>
 
           {/* Intro */}

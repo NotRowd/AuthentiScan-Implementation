@@ -33,10 +33,11 @@ for name in ['missing', 'invalid', 'failed']:
 for name in ['missing', 'invalid']:
     assert 'No valid visual-feature review was saved' in texts[name]
 assert ' '.join(texts['long'].split()).count('Synthetic fixture: an unusual bright edge appears along this surface.') == 40
-for text in ['Image description', 'An illustrated person and dog', 'Grad-CAM', 'Edited-area check', 'Objects in the image', '92.00%', 'This model failed validation', '60%', 'Technical record']:
+for text in ['Image description', 'An illustrated person and dog', 'Edited-area check', 'Objects in the image', '92.00%', 'This model failed validation', '60%']:
     assert text in texts['sample'], text
-assert 'Inconclusive' in texts['uncertain']
-assert 'No single-class heatmap' in texts['uncertain']
+assert all('Technical record' not in text for text in texts.values())
+assert 'Uncertain' in texts['uncertain']
+assert 'No reliable region' in texts['uncertain']
 assert 'Pink = saved candidate areas' not in texts['uncertain']
 assert 'No image description was saved' in texts['missing']
 assert 'Original image unavailable' in texts['missing']

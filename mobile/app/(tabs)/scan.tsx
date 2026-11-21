@@ -1,3 +1,5 @@
+import {useMobileTabSpacing} from '../../hooks/useMobileTabSpacing';
+import {useExpoControlClearance} from '../../hooks/useExpoControlClearance';
 import {useTheme,useThemedStyles} from '../../context/ThemeContext';
 import type {ColorPalette} from '../../constants/Colors';
 import {createStyles} from '../../constants/createStyles';
@@ -225,11 +227,13 @@ export default function ScanScreen() {
     setScanStage('');
   };
 
+  const {contentBottom}=useMobileTabSpacing();
+  const developmentClearance=useExpoControlClearance();
   return (
     <Animated.View style={[styles.container, { opacity: pageOpacity }]}>
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView contentContainerStyle={styles.content} onScroll={handleScroll} scrollEventThrottle={80} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView contentContainerStyle={[styles.content,{paddingBottom:contentBottom}]} onScroll={handleScroll} scrollEventThrottle={80} showsVerticalScrollIndicator={false}>
+          <View style={[styles.header,developmentClearance?{paddingTop:18+developmentClearance}:undefined]}>
             <CyberText variant="label" color={Colors.cyan}>IMAGE AUTHENTICITY</CyberText>
             <CyberText variant="h3">Scan an image</CyberText>
             <CyberText variant="bodySmall">Choose an image to review whether it may be authentic or AI-generated.</CyberText>
@@ -383,7 +387,7 @@ const makeStyles = (Colors: ColorPalette) => createStyles({
   limitNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4, paddingHorizontal: 11, paddingVertical: 9, borderRadius: 12, backgroundColor: Colors.cyanDim },
   limitCopy: { flex: 1, fontSize: 10, lineHeight: 15 },
   steps: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, paddingVertical: 2 },
-  stepItem: { alignItems: 'center', gap: 5 },
+  stepItem: { alignItems: 'center', gap: 5,flexShrink:1,minWidth:0 },
   stepNumber: { width: 27, height: 27, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgTertiary, borderWidth: 1, borderColor: Colors.border },
   stepNumberActive: { backgroundColor: Colors.cyan, borderColor: Colors.cyan },
   stepConnector: { height: 1, flex: 1, marginHorizontal: 10, backgroundColor: Colors.border },
@@ -413,7 +417,7 @@ const makeStyles = (Colors: ColorPalette) => createStyles({
   cornerTopRight: { top: 14, right: 14, borderTopWidth: 2, borderRightWidth: 2 },
   cornerBottomLeft: { bottom: 14, left: 14, borderBottomWidth: 2, borderLeftWidth: 2 },
   cornerBottomRight: { right: 14, bottom: 14, borderBottomWidth: 2, borderRightWidth: 2 },
-  removeButton: { position: 'absolute', top: 9, right: 9, width: 36, height: 36, borderRadius: 13, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center', elevation: 2 },
+  removeButton: { position: 'absolute', top: 9, right: 9, width: 44, height: 44, borderRadius: 13, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center', elevation: 2 },
   imageDetails: { gap: 5, paddingHorizontal: 13, paddingVertical: 11, borderRadius: 14, backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   fileName: { flex: 1 },

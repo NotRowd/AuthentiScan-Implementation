@@ -5,6 +5,8 @@ export const HISTORY_STATUSES = [
   ['failed', 'Failed'], ['completed', 'Completed'], ['authentic', 'Authentic'],
   ['ai_generated', 'AI-generated'], ['uncertain', 'Uncertain'],
 ] as const;
+// UI choices only. Keep lifecycle statuses supported by API/offline contracts.
+export const HISTORY_FILTER_CHOICES=HISTORY_STATUSES.filter(([value])=>!['queued','processing','completed'].includes(value));
 export type HistoryStatus = typeof HISTORY_STATUSES[number][0];
 export type HistoryFilters = { q?: string; status?: HistoryStatus };
 

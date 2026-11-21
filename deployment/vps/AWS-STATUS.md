@@ -741,3 +741,70 @@ Verified TypeScript, existing theme/contrast, navigation/session and scan resume
 checks, source backup hashes, release signing, and original welcome screen on
 the Android emulator. Expo Go uses the restored source on full reload.
 Rollback and validation records: `output/mobile-ui-restore-20261120/`.
+
+
+## History filter and dashboard cleanup — 2026-11-20
+
+Website deployed at 20261120T101339Z. History removes only the Queued for AI,
+Processing and Completed filter options. The dashboard replaces Queued scans
+with Authentic, using the existing paginated authentic-filter total (limit 1)
+for an exact account-wide count. Scan statuses, analysis data and API behavior
+are unchanged. All 23 built files verified against live SHA-256; /api/config responds,
+and the API container was not recreated. Existing APK downloads are retained.
+
+Rollback: `authentiscan-web:before-history-filter-cleanup-20261120T101339Z`.
+Source backup: `/home/ubuntu/authentiscan-backups/history-filter-cleanup-20261120T101339Z`.
+Mobile has matching UI changes in local source for Expo Go only. No APK build,
+mobile deployment or GitHub push. Tests: website production build, isolated
+Light/Dark dashboard/History checks at 1440/390/320px, mobile TypeScript, targeted
+UI/History tests, exact count/filter tests and 28 backend contract checks.
+Records: `output/history-filter-cleanup-20261120/`.
+
+
+## Android 1.0.3 — 2026-11-20
+
+Published the tested targeted mobile refinements as version 1.0.3 (Android code 4),
+using the same package and signing certificate as 1.0.2. Install over the existing
+app. The original UI is retained. Includes consistent top Back/fallbacks, History
+filter/scroll retention, native More/delete confirmation, safe-area/tab label
+fixes, small wrapping/target improvements and one profile-edit entry. Expo control
+clearance is development-only. History removes the Queued/Processing/Completed
+filter choices; the dashboard shows the exact saved Authentic count.
+
+Download: https://authentiscan.52-65-43-68.sslip.io/downloads/AuthentiScan-1.0.3.apk
+SHA-256: `d2ced1dbfda3783082a5f5b2a7f1f1947c3b01c6ec20027e883dc058f3ec9b2d`.
+
+The web image was extended only to host this APK; live website HTML and the API
+container are unchanged. No GitHub push. Rollback image: `authentiscan-web:before-mobile-download-20261120T115301Z`.
+Build, signing, APK version/source/hash checks and publication records:
+`output/mobile-apk-1.0.3-20261120/`. Targeted Back/History/delete, native tab label
+fit, exact count/filter, TypeScript and existing theme/service checks pass.
+The user accepted the targeted UI and tab labels in iPhone Expo Go; physical
+Android acceptance should be repeated on the installed APK.
+
+
+## Appearance pill — 2026-11-21
+
+Website deployed at 20261121T042806Z. The existing Appearance control now has a 112 × 48 sun/moon switch with visible Light/Dark selection, screen-reader checked state, keyboard access, focus ring and reduced-motion support. No System option or OS-change subscription remains. Legacy System (including the old unset default) resolves once into a saved explicit theme before app content. Local-storage failures offer Retry saving theme. Cross-tab synchronization retains explicit preferences. Existing layout, auth, analysis, images, PDF output and API are unchanged.
+
+Validation: production build; 66 web route/theme/viewport checks at 1440/390/320px; System migration in both themes; persistence, cross-tab, keyboard and blocked storage; mobile TypeScript, 24 contrast checks, 42 style factories, restoration/migration/storage tests and targeted navigation/history/delete regressions. 23 live files verified by SHA-256. API container unchanged.
+
+Rollback: `authentiscan-web:before-appearance-pill-20261121T042806Z`. Source backup: `/home/ubuntu/authentiscan-backups/appearance-pill-20261121T042806Z`. Records: `output/appearance-pill-preview-20261121/`. Matching mobile changes are local for Expo Go. Existing APK remains 1.0.3; no APK rebuilt or GitHub push.
+
+
+## Profile Scan overview — 2026-11-21
+
+Website deployed at 20261121T075908Z. Adds the approved compact 2 × 2 Scan overview directly below the existing profile summary, stacking before personal details on narrow screens. Shared ScanStatCards and useScanStatistics now supply both Dashboard and Profile from fetchUserStats plus the exact Authentic pagination total (status authentic, limit 1). No sample values in production. Keeps Free daily allowance and Pro null-as-Unlimited semantics. Missing/failed fields show dashes and Unavailable; actual zero stays zero. Includes retry, focus/visibility and allowance-reset refresh, category-coverage guidance and View scan history. Existing profile/photo/password/sidebar/theme UI retained.
+
+Validation: production build; isolated Profile/Dashboard API fixtures, matching values, 10 Light/Dark layout cases at 1440/1024/760/390/320px, Free/Pro/zero/loading/missing/stats-failure/Authentic-failure/retry, focus and allowance-reset refresh, keyboard focus/history navigation and retained profile/password/theme controls. Existing dashboard/history regression passed. All 23 published files verified by SHA-256; API health responds and container unchanged.
+
+Rollback: `authentiscan-web:before-profile-scan-overview-20261121T075908Z`. Source backup: `/home/ubuntu/authentiscan-backups/profile-scan-overview-20261121T075908Z`. Records: `output/profile-scan-overview-implementation-20261121/`. Website only; native mobile and APK unchanged, no GitHub push.
+
+
+## PDF confidence correction — 2026-11-21
+
+Export renderer deployed at 20261121T080723Z. Provider-backed PDFs now display the saved provider_label_confidence prominently on page one instead of looking for unavailable binary class scores. No complement is invented and no analysis values or verdicts are changed. Score meaning remains explicit for returned-label and editing confidence. Missing/invalid confidence shows Not supplied. Native classifier exports retain their separate class scores. Removes the Technical record section and its orphan final page; saved original media, visual observations, explanations and footer caveats remain. Existing downloaded files must be re-exported.
+
+Validation: 12 synthetic confidence/export cases, 6 longer layout/uncertainty/failed/invalid fixtures, page numbering and margin checks, PNG rendering inspected, 2 image/orientation/safety tests. Staged and running API containers generated a synthetic PDF successfully without live scans or credits. Deployed renderer SHA-256 e832c777a7b7133c89de19292cd3f233aa7617b26d2bbd0636c3ac5dafaedd30. Website container unchanged.
+
+Rollback: `authentiscan-api:before-pdf-score-fix-20261121T080723Z`. Backup: `/home/ubuntu/authentiscan-backups/pdf-score-fix-20261121T080723Z`. Records: `output/pdf-score-fix-20261121/`. Export API fix applies to web and mobile download requests. No website bundle change, native rebuild, APK release, or GitHub push.

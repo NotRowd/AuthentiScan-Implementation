@@ -1,3 +1,6 @@
+import {useMobileTabSpacing} from '../../hooks/useMobileTabSpacing';
+import ScanActions from '../../components/ui/ScanActions';
+import {readHistoryView,saveHistoryView,historyViewRevision,type HistoryViewState} from '../../services/scan/historyViewState';
 import {useTheme,useThemedStyles} from '../../context/ThemeContext';
 import type {ColorPalette} from '../../constants/Colors';
 import {createStyles} from '../../constants/createStyles';
@@ -19,7 +22,7 @@ import { useAuth } from '../../hooks/useAuth';
 import type { ScanResult } from '../../types';
 import { OFFLINE_MODE } from '../../services/api/config';
 import ScanImage from '../../components/ui/ScanImage';
-import { HISTORY_STATUSES, type HistoryFilters, type HistoryStatus } from '../../services/scan/historyFilters';
+import { HISTORY_FILTER_CHOICES as HISTORY_STATUSES, type HistoryFilters, type HistoryStatus } from '../../services/scan/historyFilters';
 
 type SectionBox = { y: number; height: number };
 
@@ -27,30 +30,40 @@ export default function HistoryScreen() {
  const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
 
   const { user } = useAuth();
-  const [scans, setScans] = useState<ScanResult[]>([]);
+  const {contentBottom}=useMobileTabSpacing();
+  const initial=useRef(readHistoryView(user?.id)).current;
+  const cacheRevision=useRef(historyViewRevision()).current;
+  const scroll=useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const restoreY=useRef<number|null>(initial.scrollY);
+  const initialOffset=useRef({x:0,y:initial.scrollY}).current;
+  const [deletingId,setDeletingId]=useState<string|null>(null);
+  const [scans, setScans] = useState<ScanResult[]>(initial.scans);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(initial.total);
+  const [offset, setOffset] = useState(initial.offset);
   const generation = useRef(0);
   const busy = useRef(false);
   const [refresh, setRefresh] = useState(0);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<HistoryStatus>('all');
-  const [filters, setFilters] = useState<HistoryFilters>({ q: '', status: 'all' });
+  const [search, setSearch] = useState(initial.search);
+  const [status, setStatus] = useState<HistoryStatus>(initial.status);
+  const [filters, setFilters] = useState<HistoryFilters>(initial.filters);
   const deleting = useRef(false);
   const confirmDelete = (scan: ScanResult) => Alert.alert('Delete this scan?', 'This permanently removes the scan and report. Used credits stay the same.', [
     { text: 'Cancel', style: 'cancel' },
     { text: 'Delete permanently', style: 'destructive', onPress: async () => {
       if (deleting.current) return;
-      deleting.current = true;
+      deleting.current = true; setDeletingId(scan.id);
       try { await scanHistoryService.remove(scan.id); setRefresh(value => value + 1); }
       catch (error) { setError(error instanceof Error ? error.message : 'Could not delete the scan.'); }
-      finally { deleting.current = false; }
+      finally { deleting.current = false; setDeletingId(null); }
     } },
   ]);
-  const { height: viewportHeight } = useWindowDimensions();
-  const scrollY = useRef(0);
+  const { height: viewportHeight,fontScale } = useWindowDimensions();
+  const largeText=fontScale>1.3;
+  const scrollY = useRef(initial.scrollY);
+  const view=useRef<HistoryViewState>(initial);
+  view.current={search,status,filters,scans,total,offset,scrollY:scrollY.current};
   const sectionBoxes = useRef<Record<number, SectionBox>>({});
   const activeSections = useRef<Record<number, boolean>>({});
   const revealValues = useRef([0, 0, 0].map(() => new Animated.Value(0))).current;
@@ -74,6 +87,7 @@ export default function HistoryScreen() {
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollY.current = event.nativeEvent.contentOffset.y;
+    restoreY.current=null;
     refreshReveals();
   }, [refreshReveals]);
 
@@ -91,6 +105,7 @@ export default function HistoryScreen() {
     Keyboard.dismiss();
     generation.current++;
     setScans([]); setTotal(0); setOffset(0); setIsLoading(true);
+    scrollY.current=0;restoreY.current=0;
     setFilters({ q: search.trim(), status });
   };
 
@@ -98,21 +113,33 @@ export default function HistoryScreen() {
     Keyboard.dismiss();
     generation.current++;
     setSearch(''); setStatus('all'); setScans([]); setTotal(0); setOffset(0); setIsLoading(true);
+    scrollY.current=0;restoreY.current=0;
     setFilters({ q: '', status: 'all' });
   };
 
   useFocusEffect(useCallback(() => {
     const version = ++generation.current;
-    busy.current = true;
-    setScans([]); setIsLoading(true); setError(''); setTotal(0); setOffset(0);
-    scanHistoryService.getPage(0, 20, filters).then(page => {
-      if (generation.current !== version) return;
-      setScans(page.scans); setTotal(page.pagination.total);
-      setOffset(page.pagination.offset + page.scans.length);
-    }).catch(error => { if (generation.current === version) setError(error.message || 'History could not be loaded.'); })
-      .finally(() => { if (generation.current === version) { busy.current = false; setIsLoading(false); } });
-    return () => { generation.current++; busy.current = false; };
-  }, [user?.id, refresh, filters]));
+    const requested=Math.max(20,view.current.offset);
+    busy.current = true;setIsLoading(true);setError('');
+    restoreY.current=scrollY.current;
+    // Refresh the loaded window without clearing it or resetting its scroll range.
+    void (async()=>{
+      const rows:ScanResult[]=[];let next=0,totalRows=0;
+      do {
+        const page=await scanHistoryService.getPage(next,Math.min(100,Math.max(20,requested-next)),filters);
+        if(generation.current!==version)return;
+        rows.push(...page.scans.filter(scan=>!rows.some(row=>row.id===scan.id)));
+        totalRows=page.pagination.total;next=page.pagination.offset+page.scans.length;
+        if(!page.scans.length)break;
+      }while(next<Math.min(requested,totalRows));
+      if(generation.current===version){setScans(rows);setTotal(totalRows);setOffset(next);}
+    })().catch(error=>{if(generation.current===version)setError(error.message||'History could not be loaded.');})
+      .finally(()=>{if(generation.current===version){busy.current=false;setIsLoading(false);}});
+    return()=>{
+      saveHistoryView(user?.id,{...view.current,scrollY:scrollY.current},cacheRevision);
+      generation.current++;busy.current=false;
+    };
+  },[user?.id,refresh,filters,cacheRevision]));
 
   const more = async () => {
     if (busy.current) return;
@@ -137,7 +164,7 @@ export default function HistoryScreen() {
       <LinearGradient colors={[Colors.bgPrimary, Colors.bgTertiary, Colors.bgPrimary]} style={StyleSheet.absoluteFill} />
       <ScanGrid animated={false} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={80}>
+        <ScrollView ref={scroll} contentOffset={initialOffset} onContentSizeChange={()=>{if(restoreY.current!==null){scroll.current?.scrollTo({y:restoreY.current,animated:false});restoreY.current=null;}}} contentContainerStyle={[styles.content,{paddingBottom:contentBottom}]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} onScroll={handleScroll} onScrollEndDrag={handleScroll} onMomentumScrollEnd={handleScroll} scrollEventThrottle={80}>
           <View style={styles.header}>
             <View style={styles.headerIcon}><Ionicons name="time-outline" size={21} color={Colors.cyan} /></View>
             <View style={styles.headerCopy}>
@@ -151,12 +178,12 @@ export default function HistoryScreen() {
             <GlassCard style={styles.filterCard}>
               <View style={styles.sectionTitleRow}>
                 <View><CyberText variant="h4">Find a scan</CyberText><CyberText variant="caption" color={Colors.textSecondary}>Search by filename or scan ID</CyberText></View>
-                {hasActiveFilter && <Pressable onPress={clearFilters} accessibilityRole="button"><CyberText variant="caption" color={Colors.cyan}>Clear</CyberText></Pressable>}
+                {hasActiveFilter && <Pressable onPress={clearFilters} style={styles.smallTarget} accessibilityRole="button"><CyberText variant="caption" color={Colors.cyan}>Clear</CyberText></Pressable>}
               </View>
               <View style={styles.searchField}>
                 <Ionicons name="search-outline" size={18} color={Colors.textMuted} />
                 <TextInput value={search} onChangeText={setSearch} maxLength={120} placeholder="Filename or scan number" placeholderTextColor={Colors.textMuted} accessibilityLabel="Search scan history" style={styles.search} autoCapitalize="none" autoCorrect={false} returnKeyType="search" onSubmitEditing={applyFilters} />
-                {!!search && <Pressable onPress={() => setSearch('')} accessibilityRole="button" accessibilityLabel="Clear search"><Ionicons name="close-circle" size={18} color={Colors.textMuted} /></Pressable>}
+                {!!search && <Pressable onPress={() => setSearch('')} style={styles.smallTarget} accessibilityRole="button" accessibilityLabel="Clear search"><Ionicons name="close-circle" size={18} color={Colors.textMuted} /></Pressable>}
               </View>
               <View style={styles.statuses}>
                 {HISTORY_STATUSES.map(([value, label]) => <Pressable key={value} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: status === value }} onPress={() => setStatus(value)} style={[styles.filterChip, status === value && styles.selectedChip]}><CyberText variant="caption" color={status === value ? Colors.cyanAlt : Colors.textSecondary}>{label}</CyberText></Pressable>)}
@@ -187,24 +214,22 @@ export default function HistoryScreen() {
                 const failed = scanStatus.includes('fail') || scanStatus.includes('error');
                 const processing = scanStatus.includes('process') || scanStatus.includes('pending') || scanStatus.includes('upload');
                 const statusColor = failed ? Colors.fake : processing ? Colors.severityMedium : Colors.textSecondary;
-                return <View key={scan.id}><Pressable accessibilityRole="button" accessibilityLabel={`Open ${scan.fileName}`} onPress={() => { setLatestScanResult(scan); router.push('/result'); }}>
-                  <GlassCard style={styles.scanCard}>
+                return <View key={scan.id}><GlassCard style={styles.scanCard}><Pressable style={styles.scanOpen} accessibilityRole="button" accessibilityLabel={`Open ${scan.fileName}`} onPress={() => { setLatestScanResult(scan); router.push('/result'); }}>
                     <ScanImage uri={scan.imageUri || scan.imagePath} style={styles.thumbnail} label={`${scan.fileName} thumbnail`} />
                     <View style={styles.scanDetails}>
-                      <CyberText variant="body" numberOfLines={1} style={styles.fileName}>{scan.fileName}</CyberText>
+                      <CyberText variant="body" numberOfLines={2} style={styles.fileName}>{scan.fileName}</CyberText>
                       <View style={styles.resultLine}>{scan.hasAnalysis ? <VerdictChip verdict={scan.verdict} /> : <View style={[styles.statusBadge, { backgroundColor: failed ? Colors.fakeDim : processing ? Colors.warningDim : Colors.bgTertiary }]}><View style={[styles.statusDot, { backgroundColor: statusColor }]} /><CyberText variant="caption" color={statusColor}>{scanStatus}</CyberText></View>}</View>
-                      <View style={styles.metaLine}><Ionicons name="calendar-outline" size={13} color={Colors.textMuted} /><CyberText variant="caption" color={Colors.textSecondary} numberOfLines={1}>{scan.scanNumber ? `#${scan.scanNumber} · ` : ''}{formatDate(scan.scannedAt)}</CyberText></View>
+                      <View style={styles.metaLine}><Ionicons name="calendar-outline" size={13} color={Colors.textMuted} /><CyberText variant="caption" color={Colors.textSecondary} style={{flex:1,minWidth:0}}>{scan.scanNumber ? `#${scan.scanNumber} · ` : ''}{formatDate(scan.scannedAt)}</CyberText></View>
                       {scan.creditStatus === 'not_charged' && <CyberText variant="caption" color={Colors.textMuted}>No scan credit used</CyberText>}
                     </View>
-                    <View style={styles.confidenceBlock}>
+                    <View style={[styles.confidenceBlock,largeText&&styles.confidenceBlockLarge]}>
                       <CyberText variant="h4" color={scan.hasAnalysis ? (scan.verdict === 'authentic' ? Colors.authentic : scan.verdict === 'ai_generated' ? Colors.fake : Colors.severityMedium) : Colors.textMuted}>{scan.hasAnalysis ? `${scan.confidence}%` : '—'}</CyberText>
                       <CyberText variant="caption" color={Colors.textMuted}>{scan.analysisProvider==='truthscan'?(scan.analysis?.provider_label==='Digitally Edited'?'editing confidence':'label confidence'):'confidence'}</CyberText>
-                      <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+                      {!OFFLINE_MODE&&['completed','failed'].includes(scan.status)?<View style={{height:44,width:44,marginTop:4}}/>:<Ionicons name="chevron-forward" size={16} color={Colors.textMuted}/>}
                     </View>
-                  </GlassCard>
                 </Pressable>
-                  {!OFFLINE_MODE && ['completed', 'failed'].includes(scan.status) &&
-                    <CyberButton label="Delete scan" size="sm" variant="secondary" onPress={() => confirmDelete(scan)} />}
+                  {!OFFLINE_MODE && ['completed', 'failed'].includes(scan.status) && <ScanActions fileName={scan.fileName} disabled={!!deletingId} busy={deletingId===scan.id} onDelete={()=>confirmDelete(scan)} style={styles.scanActions}/>}
+                </GlassCard>
                 </View>;
               })}
             </View>
@@ -212,7 +237,7 @@ export default function HistoryScreen() {
             {offset < total && <CyberButton label={isLoading ? 'Loading…' : 'Load more scans'} variant="secondary" disabled={isLoading || !!error} onPress={more} />}
             <CyberText variant="caption" color={Colors.textMuted} align="center">{OFFLINE_MODE ? 'Offline samples are stored on this device.' : 'Your saved scans are shared with your web account.'}</CyberText>
           </Animated.View>
-          <View style={{ height: Spacing.tabBarHeight + 20 }} />
+
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -233,22 +258,26 @@ const makeStyles = (Colors: ColorPalette) => createStyles({
   searchField: { minHeight: 46, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 12, borderRadius: 13, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgTertiary },
   search: { flex: 1, minWidth: 0, paddingVertical: 9, color: Colors.textPrimary, fontSize: 14 },
   statuses: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  filterChip: { minHeight: 34, justifyContent: 'center', paddingHorizontal: 11, borderRadius: 18, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgSecondary },
+  filterChip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 11, borderRadius: 18, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgSecondary },
   selectedChip: { borderColor: Colors.glassBorderCyan, backgroundColor: Colors.cyanDim },
-  applyButton: { minHeight: 42 },
+  applyButton: { minHeight: 44 },
   listSection: { gap: 11 },
-  listHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  refreshButton: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border },
+  listHeading: { flexDirection: 'row', flexWrap:'wrap', gap:8, alignItems: 'center', justifyContent: 'space-between' },
+  refreshButton: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.bgSecondary, borderWidth: 1, borderColor: Colors.border },
   scanList: { gap: 9 },
-  scanCard: { flexDirection: 'row', alignItems: 'center', gap: 11, padding: 11 },
+  scanCard: { padding:11,position:'relative' },
+  scanOpen:{flex:1,minHeight:76,flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:11},
+  scanActions:{position:'absolute',bottom:11,right:11},
+  smallTarget:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center'},
   thumbnail: { width: 64, height: 76, borderRadius: 12, backgroundColor: Colors.bgTertiary },
-  scanDetails: { flex: 1, minWidth: 0, gap: 6 },
+  scanDetails: { flex: 1, minWidth: 100, gap: 6 },
   fileName: { fontWeight: '700' },
   resultLine: { flexDirection: 'row', alignItems: 'center' },
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 14, paddingHorizontal: 8, paddingVertical: 4 },
   statusDot: { width: 6, height: 6, borderRadius: 3 },
-  metaLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  confidenceBlock: { minWidth: 54, alignItems: 'flex-end', gap: 1 },
+  metaLine: { flexDirection: 'row', flexWrap:'wrap', alignItems: 'center', gap: 5 },
+  confidenceBlock: { minWidth:54,maxWidth:90,marginLeft:'auto',alignItems:'flex-end',gap:1 },
+  confidenceBlockLarge:{width:'100%',maxWidth:'100%',alignItems:'flex-start',paddingRight:52},
   stateCard: { alignItems: 'center', gap: 9, paddingVertical: 16 },
   stateIconError: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.fakeDim },
   stateText: { textAlign: 'center' },

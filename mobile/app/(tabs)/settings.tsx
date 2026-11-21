@@ -1,3 +1,4 @@
+import {useMobileTabSpacing} from '../../hooks/useMobileTabSpacing';
 import AppearanceControl from '../../components/ui/AppearanceControl';
 import {useTheme,useThemedStyles} from '../../context/ThemeContext';
 import type {ColorPalette} from '../../constants/Colors';
@@ -41,6 +42,7 @@ const GROUPS: { title: string; items: SettingsItem[] }[] = [
 export default function SettingsScreen() {
  const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
 
+  const {contentBottom}=useMobileTabSpacing();
   const { user, logout } = useAuth();
 
   const handleLogout = async () => {
@@ -53,9 +55,9 @@ export default function SettingsScreen() {
       <LinearGradient colors={[Colors.bgPrimary, Colors.bgTertiary, Colors.bgPrimary]} style={StyleSheet.absoluteFill} />
       <ScanGrid animated={false} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.scrollContent,{paddingBottom:contentBottom}]} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <View>
+            <View style={{flex:1,minWidth:0}}>
               <CyberText variant="label" color={Colors.cyan}>YOUR ACCOUNT</CyberText>
               <CyberText variant="h2" style={styles.title}>Profile & Settings</CyberText>
             </View>
@@ -67,13 +69,10 @@ export default function SettingsScreen() {
               {user?.avatarUri ? <Image source={{ uri: user.avatarUri }} style={styles.avatarImage} /> : <Ionicons name="person" size={28} color={Colors.cyan} />}
             </View>
             <View style={styles.profileInfo}>
-              <CyberText variant="h4" numberOfLines={1}>{user?.name || 'User'}</CyberText>
-              <CyberText variant="bodySmall" color={Colors.textSecondary} numberOfLines={1}>{user?.email || 'user@example.com'}</CyberText>
+              <CyberText variant="h4" numberOfLines={2}>{user?.name || 'User'}</CyberText>
+              <CyberText variant="bodySmall" color={Colors.textSecondary}>{user?.email || 'user@example.com'}</CyberText>
               <View style={styles.planBadge}><View style={styles.planDot} /><CyberText variant="caption" color={Colors.cyanAlt}>{user?.plan === 'premium' ? 'PRO PLAN' : 'FREE PLAN'}</CyberText></View>
             </View>
-            <TouchableOpacity onPress={() => router.push('/edit-profile')} style={styles.editIcon} accessibilityRole="button" accessibilityLabel="Edit profile">
-              <Ionicons name="pencil-outline" size={18} color={Colors.cyan} />
-            </TouchableOpacity>
           </GlassCard>
 
           <GlassCard style={{marginBottom:20}}><AppearanceControl/></GlassCard>
@@ -86,7 +85,7 @@ export default function SettingsScreen() {
                   const content = <>
                     <View style={styles.itemLeft}>
                       <View style={[styles.itemIcon, !item.route && styles.itemIconMuted]}><Ionicons name={item.icon} size={18} color={item.route ? Colors.cyan : Colors.textSecondary} /></View>
-                      <CyberText variant="body">{item.label}</CyberText>
+                      <CyberText variant="body" style={{flexShrink:1}}>{item.label}</CyberText>
                     </View>
                     <View style={styles.itemRight}>
                       {!!item.value && <CyberText variant="caption" color={Colors.textMuted}>{item.value}</CyberText>}
@@ -104,7 +103,7 @@ export default function SettingsScreen() {
 
           {!OFFLINE_MODE && <CyberButton label="Change password" variant="secondary" onPress={() => router.push('/change-password')} />}
           <CyberButton label="Log Out" onPress={handleLogout} variant="ghost" style={styles.logoutButton} textStyle={styles.logoutText} />
-          <View style={{ height: Spacing.tabBarHeight + 24 }} />
+
         </ScrollView>
       </SafeAreaView>
     </View>
@@ -121,7 +120,7 @@ const makeStyles = (Colors: ColorPalette) => createStyles({
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 18, marginBottom: 26 },
   avatar: { width: 58, height: 58, borderRadius: 29, backgroundColor: Colors.cyanDim, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: Colors.glassBorderCyan, overflow: 'hidden' },
   avatarImage: { width: '100%', height: '100%' },
-  profileInfo: { flex: 1, gap: 4 },
+  profileInfo: { flex: 1,minWidth:0, gap: 4 },
   planBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20, backgroundColor: Colors.cyanDim },
   planDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.cyan },
   editIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: Colors.cyanDim, alignItems: 'center', justifyContent: 'center' },
@@ -129,7 +128,7 @@ const makeStyles = (Colors: ColorPalette) => createStyles({
   groupLabel: { marginBottom: 9, paddingLeft: 4, letterSpacing: 1 },
   groupCard: { padding: 0, overflow: 'hidden' },
   itemRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14 },
-  itemLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  itemLeft: { flex:1,minWidth:0,flexDirection: 'row', alignItems: 'center', gap: 12 },
   itemIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: Colors.cyanDim, alignItems: 'center', justifyContent: 'center' },
   itemIconMuted: { backgroundColor: Colors.bgTertiary },
   itemRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },

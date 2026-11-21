@@ -1,3 +1,6 @@
+import {useDetailBottomPadding} from '../hooks/useMobileTabSpacing';
+import {BackButton} from '../components/ui/DetailBack';
+import {useDetailBack} from '../hooks/useDetailBack';
 import {useTheme,useThemedStyles} from '../context/ThemeContext';
 import type {ColorPalette} from '../constants/Colors';
 import {createStyles} from '../constants/createStyles';
@@ -17,6 +20,7 @@ import { OFFLINE_MODE } from '../services/api/config';
 import { useAuth } from '../hooks/useAuth';
 
 export default function EditProfileScreen() {
+ const bottomPadding=useDetailBottomPadding(64);
  const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
 
   const { user, updateProfile } = useAuth();
@@ -27,9 +31,8 @@ export default function EditProfileScreen() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => { if (!user) router.replace('/(auth)/login'); }, [user]);
+  const {goBack:cancel}=useDetailBack('/(tabs)/settings');
   if (!user) return null;
-
-  const cancel = () => router.back();
   const save = async () => {
     setError(null); setSaved(false); setIsSaving(true);
     try {
@@ -45,8 +48,8 @@ export default function EditProfileScreen() {
     <ScanGrid animated={false} />
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.header}><TouchableOpacity onPress={cancel} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Cancel profile edits"><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity><CyberText variant="label" color={Colors.cyan}>EDIT PROFILE</CyberText><View style={styles.headerSpacer} /></View>
+        <ScrollView contentContainerStyle={[styles.content,{paddingBottom:bottomPadding}]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <View style={styles.header}><BackButton onPress={cancel} style={{marginBottom:0}}/><CyberText variant="label" color={Colors.cyan} style={{flex:1,textAlign:'center'}}>EDIT PROFILE</CyberText><View style={styles.headerSpacer} /></View>
           <View style={styles.avatar}><Ionicons name="person" size={38} color={Colors.cyan} /></View>
           <View style={styles.heading}><CyberText variant="h3" align="center">Your profile</CyberText><CyberText variant="bodySmall" align="center">Update the name shown on your account.</CyberText></View>
           <GlassCard variant="strong" style={styles.card}>
@@ -78,5 +81,5 @@ export default function EditProfileScreen() {
 }
 
 const makeStyles = (Colors: ColorPalette) => createStyles({
-  container: { flex: 1, backgroundColor: Colors.bgPrimary }, safeArea: { flex: 1 }, keyboard: { flex: 1 }, content: { flexGrow: 1, paddingHorizontal: Spacing.screenPadding, paddingBottom: Spacing['3xl'], gap: Spacing.lg }, header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.md }, backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }, headerSpacer: { width: 36 }, avatar: { width: 84, height: 84, borderRadius: 42, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.glassBorderCyan }, heading: { alignItems: 'center', gap: Spacing.sm }, card: { gap: Spacing.lg }, inputGroup: { gap: Spacing.sm }, inputWrap: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderWidth: 1, borderRadius: Spacing.inputRadius, borderColor:Colors.control, backgroundColor: Colors.glassBg }, input: { flex: 1, color: Colors.textPrimary, fontSize: Typography.size.base, paddingVertical: Spacing.sm }, lockedField: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderWidth: 1, borderRadius: Spacing.inputRadius, borderColor: Colors.border, backgroundColor: Colors.bgTertiary }, lockedText: { flex: 1 }, error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }, errorText: { flex: 1 }, success: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Spacing.sm, backgroundColor: Colors.authenticDim }, fullButton: { width: '100%' }, notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm }, noticeCopy: { flex: 1 },
+  container: { flex: 1, backgroundColor: Colors.bgPrimary }, safeArea: { flex: 1 }, keyboard: { flex: 1 }, content: { flexGrow: 1, paddingHorizontal: Spacing.screenPadding, paddingBottom: Spacing['3xl'], gap: Spacing.lg }, header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: Spacing.md }, backButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }, headerSpacer: { width: 72 }, avatar: { width: 84, height: 84, borderRadius: 42, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.cyanDim, borderWidth: 1, borderColor: Colors.glassBorderCyan }, heading: { alignItems: 'center', gap: Spacing.sm }, card: { gap: Spacing.lg }, inputGroup: { gap: Spacing.sm }, inputWrap: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderWidth: 1, borderRadius: Spacing.inputRadius, borderColor:Colors.control, backgroundColor: Colors.glassBg }, input: { flex: 1, color: Colors.textPrimary, fontSize: Typography.size.base, paddingVertical: Spacing.sm }, lockedField: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, paddingHorizontal: Spacing.md, borderWidth: 1, borderRadius: Spacing.inputRadius, borderColor: Colors.border, backgroundColor: Colors.bgTertiary }, lockedText: { flex: 1 }, error: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }, errorText: { flex: 1 }, success: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, padding: Spacing.sm, borderRadius: Spacing.sm, backgroundColor: Colors.authenticDim }, fullButton: { width: '100%' }, notice: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.sm }, noticeCopy: { flex: 1 },
 });

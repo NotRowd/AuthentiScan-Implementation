@@ -95,18 +95,29 @@ async function renderReport(scan,assets,{safePng,percent,heatmapTarget}){
       const left=244,right=W-left-14,start=y;
       box(M,start,left,218);write('OVERALL RESULT',M+16,start+16,left-32,8.5,true,C.muted);
       write(verdict,M+16,start+38,left-32,24,true,color);
-      const reportScoreRows=complete&&scan.provider==='truthscan'&&scan.provider_label==='Digitally Edited'?[['Digital-editing confidence',scan.provider_label_confidence],['Authenticity confidence',null]]:[['Authentic',complete?scan.authentic_score:null],['AI-generated',complete?scan.ai_generated_score:null]];
-      for(const [index,[label,value]] of reportScoreRows.entries()){
-        const top=start+91+index*51;
-        write(label,M+16,top,140,10,true);write(Number.isFinite(value)?percent(value):'N/A',M+left-79,top,63,10,true,color);
-        doc.roundedRect(M+16,top+24,left-32,6,3).fill(C.line);
-        if(Number.isFinite(value)&&value>0&&value<=1)doc.roundedRect(M+16,top+24,(left-32)*value,6,Math.min(3,(left-32)*value/2)).fill(index?C.blue:C.green);
+      const validScore=value=>typeof value==='number'&&Number.isFinite(value)&&value>=0&&value<=1;
+      if(complete&&scan.provider==='truthscan'){
+        const value=scan.provider_label_confidence;
+        const editing=scan.provider_label==='Digitally Edited';
+        const label=editing?'Reported confidence':scan.provider_label==='AI Edited'?'Confidence in detected AI editing':scan.verdict==='uncertain'?'Returned label confidence':'Confidence in this classification';
+        write(label,M+16,start+90,left-32,9,true);
+        write(validScore(value)?percent(value):'Not supplied',M+16,start+111,left-32,26,true,color);
+        doc.roundedRect(M+16,start+157,left-32,6,3).fill(C.line);
+        if(validScore(value)&&value>0)doc.roundedRect(M+16,start+157,(left-32)*value,6,Math.min(3,(left-32)*value/2)).fill(color);
+        write(editing?'Editing confidence, not confidence in authenticity.':scan.provider_label==='AI Edited'?'AI-editing confidence; the entire image may not be generated.':'Confidence in the returned label, not a verified probability.',M+16,start+178,left-32,8,false,C.muted);
+      }else{
+        const rows=[['Authentic',complete?scan.authentic_score:null],['AI-generated',complete?scan.ai_generated_score:null]];
+        for(const [index,[label,value]] of rows.entries()){
+          const top=start+91+index*51;
+          write(label,M+16,top,140,10,true);write(validScore(value)?percent(value):'Not supplied',M+left-79,top,63,10,true,color);
+          doc.roundedRect(M+16,top+24,left-32,6,3).fill(C.line);
+          if(validScore(value)&&value>0)doc.roundedRect(M+16,top+24,(left-32)*value,6,Math.min(3,(left-32)*value/2)).fill(index?C.blue:C.green);
+        }
+        write('Model scores, not verified probabilities.',M+16,start+194,left-32,8,false,C.muted);
       }
-      write(scan.provider_label==='Digitally Edited'?'Editing confidence, not authenticity confidence.':'Model scores, not verified probabilities.',M+16,start+194,left-32,8,false,C.muted);
       write('ORIGINAL IMAGE',M+left+14,start+1,right,8.5,true,C.muted);
       picture(original,M+left+14,start+22,right,196,'Original image unavailable');
       y=start+233;
-      if(complete&&scan.provider==='truthscan')paragraph('Analysis confidence',`${scan.provider_label==='Digitally Edited'?'Confidence in detecting digital editing':'Confidence in the returned label'}: ${percent(scan.provider_label_confidence)}. ${scan.provider_label==='Digitally Edited'?'This is editing confidence, not confidence in authenticity. ':''}Separate Authentic and AI-generated class scores were not supplied.`);
       paragraph('What this result means',explanation.summary,{note:explanation.policy||(complete?'The original saved decision is shown unchanged.':'No scores are available for this scan.')});
       if(complete&&scan.provider!=='truthscan')paragraph('Image description',scene?.observation||'No image description was saved when this report was exported.',{note:scene
         ?'Automatic observation from the local vision model. It may miss or invent details and is not the classifier\'s reason for its verdict.'
@@ -184,31 +195,6 @@ async function renderReport(scan,assets,{safePng,percent,heatmapTarget}){
         if(detection.truncated){ensure(28);y=write('Only the 20 highest-scoring detections are listed.',M,y,W,9,false,C.muted)+12;}
       }
 
-      const technical=scan.provider==='truthscan'?[
-        ['Analysis source','External image analysis service'],
-        ['Decision policy',String(scan.decision_rule||'Not recorded').replace(/^truthscan_/,'')],
-        ...(scan.display_grouping?[['Application grouping','Authentic; human authorship not verified'],['Original analysis verdict',scan.original_verdict]]:[]),
-        ['Provider label',scan.provider_label],
-        ['Label confidence',percent(scan.provider_label_confidence)],
-        ['Analyzed',localDate(scan.analyzed_at)],
-        ['Exported',localDate(assets.exportedAt)+' (Philippine time)'],
-        ['Record ID',scan.scan_id],
-      ]:[
-        ['Classifier',complete?scan.model_version:'No completed analysis'],
-        ['Decision policy',complete?scan.policy_version||'Not recorded':'Not applicable'],
-        ['Preprocessing',complete?scan.preprocessing_version||'Not recorded':'Not applicable'],
-        ['Object detector',detection?.model_version||'Not recorded'],
-        ['Localization',localization?.model_version||'Not recorded'],
-        ['Image description',scene?.model_version||'Not recorded'],
-        ['Visual review',features?`${features.model_version}; ${features.review_version}; accuracy not validated`:'Not recorded'],
-        ['Analyzed',complete?localDate(scan.analyzed_at):'Not recorded'],
-        ['Exported',localDate(assets.exportedAt)+' (Philippine time)'],
-        ['Record ID',scan.scan_id],
-      ];
-      const th=48+technical.reduce((h,[label,value])=>h+height(`${label}: ${value??'Not recorded'}`,W-28,8)+4,0);
-      ensure(th);box(M,y,W,th);write('Technical record',M+14,y+13,W-28,11,true);y+=39;
-      for(const [label,value] of technical)y=write(`${label}: ${value??'Not recorded'}`,M+14,y,W-28,8,false,C.muted)+4;
-      y+=18;
       const pages=doc.bufferedPageRange();
       for(let i=0;i<pages.count;i++){
         doc.switchToPage(i);const bottom=doc.page.margins.bottom;doc.page.margins.bottom=0;

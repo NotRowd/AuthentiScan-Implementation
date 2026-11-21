@@ -6,7 +6,7 @@ function harness(relative,mocks={}){
  const react={useState(initial){const i=cursor++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],v=>{slots[i]=typeof v==='function'?v(slots[i]):v;}];},useRef(initial){const i=cursor++;if(!(i in slots))slots[i]={current:initial};return slots[i];},useEffect(fn,deps){const i=cursor++;if(!same(slots[i],deps)){slots[i]=deps;effects.push(()=>{slots[i+'cleanup']?.();slots[i+'cleanup']=fn();});}},useCallback(fn,deps){const i=cursor++;if(!slots[i]||!same(slots[i].deps,deps))slots[i]={fn,deps};return slots[i].fn;}};
  const jsx=(type,props)=>({type,props:props||{}}),module={exports:{}};
  const filename=path.join(__dirname,'..',relative);
- vm.runInNewContext(transpile(filename),{module,exports:module.exports,require(name){if(name.includes('ThemeContext'))return require('./theme-stub.cjs');
+ vm.runInNewContext(transpile(filename),{module,exports:module.exports,require(name){if(name.includes('useMobileTabSpacing'))return {useMobileTabSpacing:()=>({height:118,paddingBottom:42,contentBottom:138})};if(name.includes('useExpoControlClearance'))return {useExpoControlClearance:()=>0};if(name.includes('ThemeContext'))return require('./theme-stub.cjs');
   if(name==='react')return {...react,default:react};if(name==='react/jsx-runtime')return {jsx,jsxs:jsx,Fragment:'Fragment'};
   if(name==='react-native')return {...mocks.native,View:'View',Pressable:'Pressable',ScrollView:'ScrollView',TextInput:'TextInput',AppState:mocks.native?.AppState||{addEventListener:()=>({remove(){}})},Linking:{openURL:async url=>{mocks.links?.push(url);}},StyleSheet:{create:x=>x}};
   if(name==='expo-router')return {router:mocks.router||{replace(){},push(){},back(){}},useFocusEffect(fn){react.useEffect(fn,[fn]);}};

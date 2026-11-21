@@ -1,3 +1,4 @@
+import DetailBack from '../components/ui/DetailBack';
 import {useTheme,useThemedStyles} from '../context/ThemeContext';
 import type {ColorPalette} from '../constants/Colors';
 import {createStyles} from '../constants/createStyles';
@@ -132,6 +133,7 @@ export default function CheckoutScreen() {
   const benefits=['Saved scan history','PDF reports at no extra cost','Failed scans do not use a credit'];
   return <SafeAreaView style={styles.screen}>
     <ScrollView contentContainerStyle={styles.content}>
+      <DetailBack fallback="/(tabs)/settings"/>
       <CyberText variant="label" color={Colors.cyan}>YOUR SUBSCRIPTION</CyberText>
       <CyberText variant="h3">Plans &amp; payments</CyberText>
       <CyberText variant="bodySmall">Your plan, your scan allowance, and your payment history in one place.</CyberText>
@@ -172,7 +174,6 @@ export default function CheckoutScreen() {
           </GlassCard>
         </>}
       </>}
-      <CyberButton label="Back" variant="ghost" onPress={()=>router.back()}/>
     </ScrollView>
   </SafeAreaView>;
 }

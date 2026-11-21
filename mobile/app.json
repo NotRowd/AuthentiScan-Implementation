@@ -2,7 +2,7 @@
   "expo": {
     "name": "AuthentiScan",
     "slug": "authentiscan",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/AuthentiScan-Logo.png",
     "userInterfaceStyle": "automatic",
@@ -23,7 +23,7 @@
       },
       "package": "com.authentiscan.app",
       "predictiveBackGestureEnabled": false,
-      "versionCode": 3
+      "versionCode": 4
     },
     "web": {
       "favicon": "./assets/favicon.png"

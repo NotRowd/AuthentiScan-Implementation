@@ -345,3 +345,25 @@ Verified TypeScript, existing theme/contrast, navigation/session and scan resume
 checks, source backup hashes, release signing, and original welcome screen on
 the Android emulator. Expo Go uses the restored source on full reload.
 Rollback and validation records: `output/mobile-ui-restore-20261120/`.
+
+
+## Android 1.0.3 — 2026-11-20
+
+Published the tested targeted mobile refinements as version 1.0.3 (Android code 4),
+using the same package and signing certificate as 1.0.2. Install over the existing
+app. The original UI is retained. Includes consistent top Back/fallbacks, History
+filter/scroll retention, native More/delete confirmation, safe-area/tab label
+fixes, small wrapping/target improvements and one profile-edit entry. Expo control
+clearance is development-only. History removes the Queued/Processing/Completed
+filter choices; the dashboard shows the exact saved Authentic count.
+
+Download: https://authentiscan.52-65-43-68.sslip.io/downloads/AuthentiScan-1.0.3.apk
+SHA-256: `d2ced1dbfda3783082a5f5b2a7f1f1947c3b01c6ec20027e883dc058f3ec9b2d`.
+
+The web image was extended only to host this APK; live website HTML and the API
+container are unchanged. No GitHub push. Rollback image: `authentiscan-web:before-mobile-download-20261120T115301Z`.
+Build, signing, APK version/source/hash checks and publication records:
+`output/mobile-apk-1.0.3-20261120/`. Targeted Back/History/delete, native tab label
+fit, exact count/filter, TypeScript and existing theme/service checks pass.
+The user accepted the targeted UI and tab labels in iPhone Expo Go; physical
+Android acceptance should be repeated on the installed APK.

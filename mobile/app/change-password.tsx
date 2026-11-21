@@ -47,7 +47,7 @@ export default function ChangePassword() {
       setCurrent(''); setNext(''); setConfirmation(''); locked.current = false; setBusy(false);
     }
   }
-  return <AccountLayout title="Change password" subtitle="Use a different password with at least 8 characters.">
+  return <AccountLayout backFallback="/(tabs)/settings" title="Change password" subtitle="Use a different password with at least 8 characters.">
     {([
       ['Current password',current,setCurrent,'current-password'],
       ['New password',next,setNext,'new-password'],
@@ -55,6 +55,5 @@ export default function ChangePassword() {
     ] as const).map(([label,value,setter,autoComplete])=><AccountField key={label} label={label} value={value} onChangeText={setter} autoComplete={autoComplete} password editable={!busy}/>)}
     {!!message&&<CyberText variant="bodySmall">{message}</CyberText>}
     <CyberButton label={busy?'Updating password…':'Update password'} onPress={submit} disabled={busy||OFFLINE_MODE} loading={busy}/>
-    <CyberButton label="Back" variant="secondary" disabled={busy} onPress={()=>router.back()}/>
   </AccountLayout>;
 }

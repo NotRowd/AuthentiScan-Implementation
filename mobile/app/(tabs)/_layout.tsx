@@ -1,3 +1,5 @@
+import {useMobileTabSpacing} from '../../hooks/useMobileTabSpacing';
+import CyberText from '../../components/ui/CyberText';
 import {useTheme,useThemedStyles} from '../../context/ThemeContext';
 import type {ColorPalette} from '../../constants/Colors';
 import {createStyles} from '../../constants/createStyles';
@@ -22,6 +24,7 @@ import Typography from '../../constants/Typography';
 export default function TabsLayout() {
  const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
 
+  const spacing=useMobileTabSpacing();
   const { isLoading, isAuthenticated } = useAuth();
   if (isLoading) return null;
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
@@ -29,11 +32,15 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar,{height:spacing.height,paddingBottom:spacing.paddingBottom}],
+        tabBarAllowFontScaling:true,
+        tabBarLabelPosition:'below-icon',
+        tabBarIconStyle:{height:48},
+        tabBarLabel:({children,color})=><CyberText variant="caption" numberOfLines={2} style={[styles.tabBarLabel,{color,textAlign:'center',flexShrink:0}]}>{children}</CyberText>,
         tabBarActiveTintColor: Colors.cyan,
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarLabelStyle: styles.tabBarLabel,
-        tabBarItemStyle: styles.tabBarItem,
+        tabBarItemStyle: [styles.tabBarItem,{minHeight:spacing.itemHeight}],
         tabBarBackground: () => (
           <View style={StyleSheet.absoluteFill}>
             <View style={styles.tabBarBg} />
@@ -107,6 +114,7 @@ const makeStyles = (Colors: ColorPalette) => createStyles({
     fontWeight: Typography.weight.medium,
     letterSpacing: 0.5,
     marginTop: 2,
+    lineHeight: 17,
   },
   tabBarItem: {
     paddingTop: 4,

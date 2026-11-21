@@ -1,3 +1,6 @@
+import {useDetailBottomPadding} from '../hooks/useMobileTabSpacing';
+import {BackButton} from '../components/ui/DetailBack';
+import {useDetailBack} from '../hooks/useDetailBack';
 import {useTheme,useThemedStyles} from '../context/ThemeContext';
 import type {ColorPalette} from '../constants/Colors';
 import {createStyles} from '../constants/createStyles';
@@ -17,9 +20,11 @@ import { feedbackService } from '../services/feedback/feedbackService';
 import type { FeedbackRating } from '../types';
 
 export default function FeedbackScreen() {
+ const bottomPadding=useDetailBottomPadding(64);
  const {colors:Colors}=useTheme(); const styles=useThemedStyles(makeStyles);
 
   const result = getLatestScanResult();
+  const {goBack}=useDetailBack(result?'/result':'/(tabs)/history');
   const [rating, setRating] = useState<FeedbackRating | null>(null);
   const [comment, setComment] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -64,11 +69,11 @@ export default function FeedbackScreen() {
       <ScanGrid animated={false} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Go back"><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity>
+          <ScrollView contentContainerStyle={[styles.content,{paddingBottom:bottomPadding}]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <BackButton onPress={goBack}/>
             <View style={styles.heading}><View style={styles.icon}><Ionicons name="chatbubble-ellipses-outline" size={30} color={Colors.cyan} /></View><CyberText variant="h3" align="center">Rate this result</CyberText><CyberText variant="bodySmall" align="center">Tell us whether this report was useful.</CyberText></View>
             {loading ? <CyberText variant="bodySmall">Loading feedback…</CyberText> : saved ? (
-              <GlassCard variant="strong" style={styles.savedCard} active><Ionicons name="checkmark-circle" size={42} color={Colors.authentic} /><CyberText variant="h4" align="center">Feedback saved</CyberText><CyberText variant="bodySmall" align="center">{rating} of 5 stars</CyberText>{!!comment && <CyberText variant="bodySmall">{comment}</CyberText>}<CyberButton label="Back to report" onPress={() => router.back()} size="sm" /></GlassCard>
+              <GlassCard variant="strong" style={styles.savedCard} active><Ionicons name="checkmark-circle" size={42} color={Colors.authentic} /><CyberText variant="h4" align="center">Feedback saved</CyberText><CyberText variant="bodySmall" align="center">{rating} of 5 stars</CyberText>{!!comment && <CyberText variant="bodySmall">{comment}</CyberText>}<CyberButton label="Back to report" onPress={goBack} size="sm" /></GlassCard>
             ) : (
               <GlassCard variant="strong" style={styles.card}>
                 <CyberText variant="label" color={Colors.cyan}>USEFULNESS RATING</CyberText>

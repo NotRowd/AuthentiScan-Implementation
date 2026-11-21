@@ -1,36 +1,14 @@
-/* Runs synchronously before application styles and React. No account data stored. */
+/* Synchronous theme restoration before styles and React. */
 (function () {
-  var key = 'authentiscan.appearance.v1';
-  var root = document.documentElement;
-  var media = window.matchMedia('(prefers-color-scheme: dark)');
-  var choices = ['light', 'dark', 'system'];
-  var preference = 'system';
-  try { var saved = localStorage.getItem(key); if (choices.indexOf(saved) !== -1) preference = saved; } catch (_) {}
-  function resolve() {
-    var resolved = preference === 'system' ? (media.matches ? 'dark' : 'light') : preference;
-    root.dataset.theme = resolved;
-    root.style.colorScheme = resolved;
-    root.style.backgroundColor = resolved === 'dark' ? '#091321' : '#f6f9fc';
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.content = resolved === 'dark' ? '#091321' : '#f6f9fc';
-    window.dispatchEvent(new Event('authentiscan-theme-change'));
-  }
-  window.AuthentiScanTheme = Object.freeze({
-    getPreference: function () { return preference; },
-    setPreference: function (next) {
-      if (choices.indexOf(next) === -1) return;
-      preference = next;
-      try { localStorage.setItem(key, next); } catch (_) {}
-      resolve();
-    }
-  });
-  function onSystemChange() { if (preference === 'system') resolve(); }
-  if (media.addEventListener) media.addEventListener('change', onSystemChange);
-  else media.addListener(onSystemChange);
-  window.addEventListener('storage', function (event) {
-    if (event.key !== key && event.key !== null) return;
-    preference = choices.indexOf(event.newValue) !== -1 ? event.newValue : 'system';
-    resolve();
-  });
-  resolve();
+ var key='authentiscan.appearance.v1',root=document.documentElement,error='';
+ function valid(value){return value==='light'||value==='dark';}
+ var preference=valid(root.dataset.theme)?root.dataset.theme:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+ try{var saved=localStorage.getItem(key);if(valid(saved))preference=saved;}catch(_){}
+ function save(){try{localStorage.setItem(key,preference);error='';}catch(_){error='Theme changed for this session. Could not save it on this device.';}}
+ // Resolve legacy System once. No OS change listener remains.
+ save();
+ function apply(){root.dataset.theme=preference;root.style.colorScheme=preference;root.style.backgroundColor=preference==='dark'?'#091321':'#f6f9fc';var meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=root.style.backgroundColor;window.dispatchEvent(new Event('authentiscan-theme-change'));}
+ window.AuthentiScanTheme=Object.freeze({getPreference:function(){return preference;},getSaveError:function(){return error;},setPreference:function(next){if(!valid(next))return;preference=next;save();apply();}});
+ window.addEventListener('storage',function(event){if(event.key!==key&&event.key!==null)return;if(valid(event.newValue)){preference=event.newValue;error='';}else save();apply();});
+ apply();
 })();

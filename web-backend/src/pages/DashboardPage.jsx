@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import ScanStatCards from '../components/common/ScanStatCards';
+import {useScanStatistics} from '../hooks/useScanStatistics';
 import { Link } from 'react-router-dom';
-import { Scan, AlertTriangle, Clock, RefreshCw, ArrowUpRight, ArrowRight, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Scan, RefreshCw, ArrowUpRight, ArrowRight, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import StatusBadge from '../components/common/StatusBadge';
-import { fetchUserStats, fetchUserScans, getStoredUser, isCloudMode } from '../services/api';
+import { getStoredUser, isCloudMode } from '../services/api';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 15 },
@@ -20,47 +22,10 @@ const staggerContainer = {
 };
 
 export default function DashboardPage() {
-  const [state, setState] = useState({ loading: true, error: '', stats: null, scans: [] });
-  const [refresh, setRefresh] = useState(0);
-  const user = getStoredUser();
-  
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    const timeout = setTimeout(() => controller.abort(), 20000);
-    Promise.all([fetchUserStats(controller.signal), fetchUserScans({ limit: 5, signal: controller.signal })])
-      .then(([statsResponse, scansResponse]) => {
-        if (active) setState({ loading: false, error: '', stats: statsResponse.data, scans: scansResponse.data?.scans || [] });
-      }).catch(error => {
-        if (active) setState({ loading: false, error: error.name === 'AbortError' ? 'The dashboard took too long to load. Check your connection and refresh.' : error.message || 'Dashboard unavailable. Please try again.', stats: null, scans: [] });
-      }).finally(() => clearTimeout(timeout));
-    return () => { active = false; clearTimeout(timeout); controller.abort(); };
-  }, [refresh]);
-
-  const stats = state.stats;
-
-  useEffect(() => {
-    const reload = () => {
-      if (document.visibilityState === 'visible') setRefresh(value => value + 1);
-    };
-    const resetDelay = Date.parse(stats?.allowance_resets_at) - Date.parse(stats?.server_now);
-    const timer = Number.isFinite(resetDelay) && resetDelay > 0
-      ? setTimeout(reload, Math.min(resetDelay + 1000, 86401000)) : null;
-    window.addEventListener('focus', reload);
-    document.addEventListener('visibilitychange', reload);
-    return () => { clearTimeout(timer); window.removeEventListener('focus', reload); document.removeEventListener('visibilitychange', reload); };
-  }, [stats]);
-
-  const metrics = [
-    { title: 'Total scans', value: stats?.total_scans, note: 'Saved to your account', icon: Scan },
-    { title: 'Scans remaining', value: stats?.scans_remaining === null ? 'Unlimited' : stats?.scans_remaining, note: stats?.plan?.scan_limit != null ? `${stats.plan.scan_limit} scans/day` : 'Current allowance', icon: Clock },
-    { title: 'AI-generated', value: stats?.ai_generated_found, note: 'Model classifications', icon: AlertTriangle },
-    { title: 'Queued scans', value: stats?.queued_scans, note: 'Awaiting analysis', icon: Clock },
-  ];
-
+  const {state,refresh}=useScanStatistics({includeRecent:true});
+  const user=getStoredUser(),stats=state.stats;
   const plan = stats?.plan || user?.plan;
   const planName = plan?.scan_limit === null ? 'Pro' : plan?.name || 'Free';
-  const formatCount = value => typeof value === 'number' ? value.toLocaleString() : value ?? '—';
 
   return (
     <DashboardLayout>
@@ -103,18 +68,7 @@ export default function DashboardPage() {
           </motion.section>
 
           <motion.section variants={fadeIn} aria-label="Scan statistics" aria-busy={state.loading} className="grid grid-cols-2 gap-3 sm:gap-4 xl:col-span-5">
-            {metrics.map(({ title, value, note, icon: Icon }) => (
-              <div key={title} className="min-w-0 rounded-3xl border border-line bg-surface p-4 sm:p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-1">
-                  <h2 className="text-xs font-medium leading-relaxed text-ink-secondary">{title}</h2>
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-soft"><Icon aria-hidden="true" className="h-3.5 w-3.5 text-accent" /></div>
-                </div>
-                <p className={`mt-2 font-bold tracking-tight tabular-nums text-ink ${value === 'Unlimited' ? 'text-xl sm:text-2xl' : 'text-3xl'}`}>
-                  {state.loading ? '—' : formatCount(value)}
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">{state.loading ? 'Loading…' : state.error ? 'Unavailable' : note}</p>
-              </div>
-            ))}
+            <ScanStatCards stats={stats} loading={state.loading} error={state.error}/>
           </motion.section>
         </div>
 
@@ -127,7 +81,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-2">
               <button type="button" aria-label="Refresh recent scans" disabled={state.loading}
-                onClick={() => { setState(current => ({ ...current, loading: true, error: '' })); setRefresh(value => value + 1); }}
+                onClick={refresh}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-line text-ink-secondary transition-colors hover:border-line hover:text-accent disabled:opacity-100 disabled:bg-disabled disabled:text-disabled-ink disabled:border-line">
                 <RefreshCw aria-hidden="true" className={`h-4 w-4 ${state.loading ? 'motion-safe:animate-spin' : ''}`} />
               </button>

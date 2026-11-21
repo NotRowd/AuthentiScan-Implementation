@@ -152,9 +152,6 @@ export default function HistoryPage() {
                 className="w-full sm:w-auto bg-canvas border border-line rounded-xl px-4 py-3 text-sm font-bold text-ink-secondary focus:outline-none focus:border-accent focus:ring-4 focus:ring-focus/10 cursor-pointer shadow-sm"
               >
                 <option value="all">All Scans</option>
-                <option value="queued">Queued for AI</option>
-                <option value="processing">Processing</option>
-                <option value="completed">Completed</option>
                 <option value="authentic">Authentic</option>
                 <option value="ai_generated">AI-Generated</option>
                 <option value="uncertain">Uncertain</option>

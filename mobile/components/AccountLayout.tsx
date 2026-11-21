@@ -1,3 +1,5 @@
+import DetailBack from './ui/DetailBack';
+import type {Href} from 'expo-router';
 import AppearanceControl from './ui/AppearanceControl';
 import {useTheme,useThemedStyles} from '../context/ThemeContext';
 import type {ColorPalette} from '../constants/Colors';
@@ -7,11 +9,11 @@ import {Image,KeyboardAvoidingView,Platform,Pressable,ScrollView,StyleSheet,Text
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import CyberText from './ui/CyberText';
-export default function AccountLayout({title,subtitle,children,footer}:{title:string;subtitle:string;children:React.ReactNode;footer?:React.ReactNode}){
+export default function AccountLayout({title,subtitle,children,footer,backFallback='/(public)/home'}:{title:string;subtitle:string;children:React.ReactNode;footer?:React.ReactNode;backFallback?:Href}){
  const {colors:Colors,isDark}=useTheme(); const styles=useThemedStyles(makeStyles);
 
  return <SafeAreaView style={styles.screen}><KeyboardAvoidingView style={{flex:1}} behavior={Platform.OS==='ios'?'padding':'height'}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
-  <View style={styles.wrap}><View style={{marginBottom:14}}><AppearanceControl compact/></View><Pressable accessibilityRole="button" accessibilityLabel="Go back" style={styles.back} onPress={()=>router.canGoBack()?router.back():router.replace('/(public)/home')}><CyberText color={Colors.cyanAlt}>← Back</CyberText></Pressable>
+  <View style={styles.wrap}><View style={{marginBottom:14}}><AppearanceControl compact/></View><DetailBack fallback={backFallback}/>
   <View style={styles.card}><Image source={require('../assets/AuthentiScan-Logo.png')} style={styles.logo} accessibilityLabel="AuthentiScan logo"/><CyberText variant="h3" align="center">{title}</CyberText><CyberText variant="bodySmall" align="center">{subtitle}</CyberText><View style={styles.form}>{children}</View></View>
   {!!footer&&<View style={styles.footer}>{footer}</View>}</View>
  </ScrollView></KeyboardAvoidingView></SafeAreaView>;

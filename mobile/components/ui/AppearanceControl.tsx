@@ -1,17 +1,20 @@
 import React,{useState} from 'react';
 import {Pressable,View} from 'react-native';
-import {useTheme,type ThemePreference} from '../../context/ThemeContext';
+import {Ionicons} from '@expo/vector-icons';
+import {useTheme} from '../../context/ThemeContext';
 import CyberText from './CyberText';
 export default function AppearanceControl({compact=false}:{compact?:boolean}){
- const {colors,preference,setPreference,saveError}=useTheme();const [focused,setFocused]=useState<ThemePreference|null>(null);
+ const {colors,preference,isDark,setPreference,saveError}=useTheme(),[focused,setFocused]=useState(false);
  return <View style={{gap:compact?6:10}}>
   <CyberText variant={compact?'caption':'h4'}>Appearance</CyberText>
-  {!compact&&<CyberText variant="bodySmall" color={colors.textSecondary}>Choose a theme. System follows your device.</CyberText>}
-  <View accessibilityRole="radiogroup" accessibilityLabel="Appearance" style={{flexDirection:'row',gap:4,padding:4,borderRadius:14,borderWidth:1,borderColor:colors.control,backgroundColor:colors.bgSecondary}}>
-   {(['light','dark','system'] as const).map(choice=><Pressable key={choice} accessibilityRole="radio" accessibilityLabel={choice[0].toUpperCase()+choice.slice(1)+' theme'} accessibilityState={{checked:preference===choice}} onPress={()=>setPreference(choice)} onFocus={()=>setFocused(choice)} onBlur={()=>setFocused(null)} style={({pressed})=>({flex:1,minHeight:44,justifyContent:'center',alignItems:'center',paddingHorizontal:5,borderRadius:10,borderWidth:2,borderColor:focused===choice?colors.focus:preference===choice?colors.cyan:'transparent',backgroundColor:preference===choice?colors.cyanDim:pressed?colors.surfaceHover:colors.bgSecondary})}>
-    <CyberText variant="bodySmall" color={preference===choice?colors.cyan:colors.textSecondary} style={{fontWeight:'600'}}>{choice[0].toUpperCase()+choice.slice(1)}</CyberText>
-   </Pressable>)}
+  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}>
+   <CyberText variant="bodySmall" style={{fontWeight:'600'}}>{isDark?'Dark':'Light'}</CyberText>
+   <Pressable accessibilityRole="switch" accessibilityLabel="Dark mode" accessibilityState={{checked:isDark}} onPress={()=>setPreference(isDark?'light':'dark')} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} style={({pressed})=>({width:112,height:48,borderRadius:999,borderWidth:1,borderColor:focused?colors.focus:colors.control,backgroundColor:pressed?colors.surfaceHover:colors.bgTertiary,flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:14,...(focused?{outlineWidth:3,outlineColor:colors.focus,outlineOffset:3}:{})})}>
+    <View pointerEvents="none" style={{position:'absolute',left:isDark?68:4,top:4,width:38,height:38,borderRadius:19,borderWidth:1,borderColor:isDark?colors.cyan:colors.control,backgroundColor:isDark?colors.cyan:colors.bgSecondary}}/>
+    <Ionicons accessible={false} name="sunny-outline" size={20} color={isDark?colors.textSecondary:colors.cyan}/>
+    <Ionicons accessible={false} name="moon-outline" size={20} color={isDark?colors.onAction:colors.textSecondary}/>
+   </Pressable>
   </View>
-  {!!saveError&&<View accessibilityRole="alert"><CyberText variant="caption" color={colors.fake}>{saveError}</CyberText></View>}
+  {!!saveError&&<View accessibilityRole="alert"><CyberText variant="caption" color={colors.fake}>{saveError}</CyberText><Pressable accessibilityRole="button" onPress={()=>setPreference(preference)} style={{minHeight:44,justifyContent:'center'}}><CyberText variant="bodySmall" color={colors.cyan}>Retry saving theme</CyberText></Pressable></View>}
  </View>;
 }
